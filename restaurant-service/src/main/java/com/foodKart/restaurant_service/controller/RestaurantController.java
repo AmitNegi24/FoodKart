@@ -5,6 +5,10 @@ import com.foodKart.restaurant_service.dto.RestaurantResponseDTO;
 import com.foodKart.restaurant_service.service.RestaurantService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -31,11 +35,10 @@ public class RestaurantController {
     }
 
     @GetMapping
-    public ResponseEntity<List<RestaurantResponseDTO>> getAllRestaurants() {
-
-        return ResponseEntity.ok(
-                restaurantService.getAllRestaurants()
-        );
+    public ResponseEntity<Page<RestaurantResponseDTO>> getAllRestaurants(
+            @PageableDefault(page = 0, size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<RestaurantResponseDTO> response = restaurantService.getAllRestaurants(pageable);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")

@@ -2,6 +2,8 @@ package com.foodKart.restaurant_service.service;
 
 import com.foodKart.restaurant_service.dto.RestaurantRequestDTO;
 import com.foodKart.restaurant_service.dto.RestaurantResponseDTO;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -9,7 +11,7 @@ public interface RestaurantService {
 
     RestaurantResponseDTO createRestaurant(RestaurantRequestDTO request);
 
-    List<RestaurantResponseDTO> getAllRestaurants();
+    Page<RestaurantResponseDTO> getAllRestaurants(Pageable pageable);;
 
     RestaurantResponseDTO getRestaurantById(Long id);
 

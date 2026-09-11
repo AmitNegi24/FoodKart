@@ -8,6 +8,8 @@ import com.foodKart.restaurant_service.exception.RestaurantNotFoundException;
 import com.foodKart.restaurant_service.repository.RestaurantRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -42,14 +44,14 @@ public class RestaurantServiceImpl implements RestaurantService {
     }
 
     @Override
-    public List<RestaurantResponseDTO> getAllRestaurants() {
+    public Page<RestaurantResponseDTO> getAllRestaurants(Pageable pageable) {
 
-        log.info("Fetching all restaurants");
+        log.info("Fetching restaurants - page: {}, size: {}",
+                pageable.getPageNumber(),
+                pageable.getPageSize());
 
-        return restaurantRepository.findAll()
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
+        return restaurantRepository.findAll(pageable)
+                .map(this::mapToResponse);
     }
 
     @Override
