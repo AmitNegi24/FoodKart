@@ -1,6 +1,7 @@
 package com.foodKart.restaurant_service.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
@@ -24,6 +25,7 @@ public class RestaurantRequestDTO {
     @NotBlank(message = "City is required")
     private String city;
 
-    @Size(max = 20, message = "Phone number cannot exceed 20 characters")
+    @NotBlank(message = "Phone number is required")
+    @Pattern(regexp = "^[0-9]{10}$", message = "Phone must be a valid 10-digit number")
     private String phone;
 }
