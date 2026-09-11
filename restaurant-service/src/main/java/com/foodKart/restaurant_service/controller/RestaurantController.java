@@ -1,0 +1,68 @@
+package com.foodKart.restaurant_service.controller;
+
+import com.foodKart.restaurant_service.dto.RestaurantRequestDTO;
+import com.foodKart.restaurant_service.dto.RestaurantResponseDTO;
+import com.foodKart.restaurant_service.service.RestaurantService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/restaurants")
+@RequiredArgsConstructor
+public class RestaurantController {
+
+    private final RestaurantService restaurantService;
+
+    @PostMapping
+    public ResponseEntity<RestaurantResponseDTO> createRestaurant(
+            @Valid @RequestBody RestaurantRequestDTO request) {
+
+        RestaurantResponseDTO response =
+                restaurantService.createRestaurant(request);
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(response);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<RestaurantResponseDTO>> getAllRestaurants() {
+
+        return ResponseEntity.ok(
+                restaurantService.getAllRestaurants()
+        );
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<RestaurantResponseDTO> getRestaurantById(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                restaurantService.getRestaurantById(id)
+        );
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<RestaurantResponseDTO> updateRestaurant(
+            @PathVariable Long id,
+            @Valid @RequestBody RestaurantRequestDTO request) {
+
+        return ResponseEntity.ok(
+                restaurantService.updateRestaurant(id, request)
+        );
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteRestaurant(
+            @PathVariable Long id) {
+
+        restaurantService.deleteRestaurant(id);
+
+        return ResponseEntity.noContent().build();
+    }
+}
