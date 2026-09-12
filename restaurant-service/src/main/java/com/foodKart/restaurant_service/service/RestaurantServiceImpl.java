@@ -59,7 +59,7 @@ public class RestaurantServiceImpl implements RestaurantService {
 
         Restaurant restaurant = restaurantRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException("Restaurant not found with id: " + id));
+                        new RestaurantNotFoundException("Restaurant not found with id: " + id));
 
         return mapToResponse(restaurant);
     }
