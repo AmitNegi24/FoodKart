@@ -18,4 +18,8 @@ public interface RestaurantService {
     RestaurantResponseDTO updateRestaurant(Long id, RestaurantRequestDTO request);
 
     void deleteRestaurant(Long id);
+
+    Page<RestaurantResponseDTO> getActiveRestaurantsByCity( String city, Pageable pageable);
+
+    Page<RestaurantResponseDTO> getRestaurantsByNameContaining(String name, Pageable pageable);
 }

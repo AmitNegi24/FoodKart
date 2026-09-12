@@ -1,7 +1,6 @@
 package com.foodKart.restaurant_service.service;
 
 import com.foodKart.restaurant_service.dto.RestaurantRequestDTO;
-import com.foodKart.restaurant_service.dto.RestaurantRequestDTO;
 import com.foodKart.restaurant_service.dto.RestaurantResponseDTO;
 import com.foodKart.restaurant_service.entity.Restaurant;
 import com.foodKart.restaurant_service.exception.RestaurantNotFoundException;
@@ -12,7 +11,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -104,6 +102,25 @@ public class RestaurantServiceImpl implements RestaurantService {
         restaurantRepository.deleteById(id);
 
         log.info("Restaurant deleted successfully with id: {}", id);
+    }
+
+    @Override
+    public Page<RestaurantResponseDTO> getActiveRestaurantsByCity(
+            String city,
+            Pageable pageable) {
+
+        Page<Restaurant> restaurants =
+                restaurantRepository.findByCityAndActiveTrue(city, pageable);
+
+        return restaurants.map(this::mapToResponse);
+    }
+
+    @Override
+    public Page<RestaurantResponseDTO> getRestaurantsByNameContaining(String name, Pageable pageable) {
+        Page<Restaurant> restaurants =
+                restaurantRepository.findByNameContainingAndActiveTrue(name, pageable);
+
+        return restaurants.map(this::mapToResponse);
     }
 
     private RestaurantResponseDTO mapToResponse(Restaurant restaurant) {

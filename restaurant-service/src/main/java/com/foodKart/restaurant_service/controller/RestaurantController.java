@@ -41,6 +41,38 @@ public class RestaurantController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/city")
+    public ResponseEntity<Page<RestaurantResponseDTO>> getActiveRestaurantByCity(
+            @RequestParam String city,
+            @PageableDefault(
+                    page = 0,
+                    size = 10,
+                    sort = "id",
+                    direction = Sort.Direction.DESC
+            ) Pageable pageable)  {
+
+        Page<RestaurantResponseDTO> response =
+                restaurantService.getActiveRestaurantsByCity(city, pageable);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<Page<RestaurantResponseDTO>> getRestaurantsByContainingName(
+            @RequestParam String name,
+            @PageableDefault(
+                    page = 0,
+                    size = 10,
+                    sort = "id",
+                    direction = Sort.Direction.DESC
+            ) Pageable pageable) {
+
+        Page<RestaurantResponseDTO> response =
+                restaurantService.getRestaurantsByNameContaining(name, pageable);
+
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<RestaurantResponseDTO> getRestaurantById(
             @PathVariable Long id) {
