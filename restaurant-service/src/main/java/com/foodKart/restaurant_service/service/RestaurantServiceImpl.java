@@ -25,6 +25,7 @@ public class RestaurantServiceImpl implements RestaurantService {
         log.info("Creating restaurant with name: {}", request.getName());
 
         if (request.getName() == null || request.getName().isBlank()) {
+            log.warn("Restaurant name cannot be null or empty");
             throw new IllegalArgumentException("Restaurant name cannot be null or empty");
         }
 
@@ -66,8 +67,11 @@ public class RestaurantServiceImpl implements RestaurantService {
         log.info("Fetching restaurant with id: {}", id);
 
         Restaurant restaurant = restaurantRepository.findById(id)
-                .orElseThrow(() ->
-                        new RestaurantNotFoundException("Restaurant not found with id: " + id));
+                .orElseThrow(() -> {
+                    log.warn("Restaurant not found with id:" +id);
+                    return new RestaurantNotFoundException("Restaurant not found with id: " + id);
+                });
+
 
         return mapToResponse(restaurant);
     }
@@ -80,9 +84,10 @@ public class RestaurantServiceImpl implements RestaurantService {
         log.info("Updating restaurant with id: {}", id);
 
         Restaurant restaurant = restaurantRepository.findById(id)
-                .orElseThrow(() ->
-                        new RestaurantNotFoundException(
-                                "Restaurant not found with id: " + id));
+                .orElseThrow(() ->{
+                    log.warn("Restaurant not found with id while updating:" +id);
+                    return new RestaurantNotFoundException("Restaurant not found with id: " + id);
+                });
 
         restaurant.setName(request.getName());
         restaurant.setDescription(request.getDescription());
@@ -103,6 +108,7 @@ public class RestaurantServiceImpl implements RestaurantService {
         log.info("Deleting restaurant with id: {}", id);
 
         if (!restaurantRepository.existsById(id)) {
+            log.warn("Restaurant not found with id while deleting:" +id);
             throw new RestaurantNotFoundException(
                     "Restaurant not found with id: " + id);
         }
