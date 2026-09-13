@@ -34,5 +34,5 @@ build/
 .env
 
 ### Log files ###
-logs/
+/logs/
 
