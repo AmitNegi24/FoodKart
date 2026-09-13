@@ -24,6 +24,10 @@ public class RestaurantServiceImpl implements RestaurantService {
 
         log.info("Creating restaurant with name: {}", request.getName());
 
+        if (request.getName() == null || request.getName().isBlank()) {
+            throw new IllegalArgumentException("Restaurant name cannot be null or empty");
+        }
+
         Restaurant restaurant = Restaurant.builder()
                 .name(request.getName())
                 .description(request.getDescription())
@@ -34,6 +38,10 @@ public class RestaurantServiceImpl implements RestaurantService {
                 .build();
 
         Restaurant savedRestaurant = restaurantRepository.save(restaurant);
+
+        if (savedRestaurant == null) {
+            throw new RuntimeException("Failed to save restaurant");
+        }
 
         log.info("Restaurant created successfully with id: {}",
                 savedRestaurant.getId());
