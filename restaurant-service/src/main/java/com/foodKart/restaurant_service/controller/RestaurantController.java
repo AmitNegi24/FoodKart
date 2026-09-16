@@ -32,7 +32,7 @@ public class RestaurantController {
                 .body(response);
     }
 
-    @GetMapping
+    @GetMapping("/getAllRestaurants")
     public ResponseEntity<Page<RestaurantResponseDTO>> getAllRestaurants(
             @PageableDefault(page = 0, size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
         Page<RestaurantResponseDTO> response = restaurantService.getAllRestaurants(pageable);
