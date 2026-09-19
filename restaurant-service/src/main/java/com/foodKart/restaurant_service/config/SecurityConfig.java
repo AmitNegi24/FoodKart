@@ -26,7 +26,9 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health",
                                 "/restaurants/getAllRestaurants",
                                 "/restaurants/getActiveRestaurantsByCity",
-                                "/restaurants/getRestaurantsByNameContaining")
+                                "/restaurants/getRestaurantsByNameContaining",
+                                "/restaurants/getRestaurantsByCity",
+                                "/restaurants/{id}")
                         .permitAll()
 
                         .anyRequest()

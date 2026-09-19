@@ -5,6 +5,8 @@ import com.foodkart.menu_service.dto.MenuItemResponseDTO;
 import com.foodkart.menu_service.service.MenuItemService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -18,6 +20,7 @@ import java.math.BigDecimal;
 @RequiredArgsConstructor
 public class MenuItemController {
 
+    private static final Logger log = LoggerFactory.getLogger(MenuItemController.class);
     private final MenuItemService menuItemService;
 
     @GetMapping("/{menuId}")
@@ -83,10 +86,10 @@ public class MenuItemController {
     }
 
 
-    @PostMapping
+    @PostMapping("/create")
     public ResponseEntity<MenuItemResponseDTO> createMenuItem(
             @Valid @RequestBody MenuItemRequestDTO request) {
-
+        log.info("Creating menu item: {}", request);
         MenuItemResponseDTO response =
                 menuItemService.createMenuItem(request);
 

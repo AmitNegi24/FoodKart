@@ -3,11 +3,13 @@ package com.foodkart.menu_service.service;
 import com.foodkart.menu_service.client.RestaurantClient;
 import com.foodkart.menu_service.dto.MenuItemRequestDTO;
 import com.foodkart.menu_service.dto.MenuItemResponseDTO;
+import com.foodkart.menu_service.dto.RestaurantDTO;
 import com.foodkart.menu_service.entity.MenuItem;
 import com.foodkart.menu_service.repository.MenuItemRepository;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
@@ -26,9 +28,14 @@ public class MenuItemServiceImpl implements MenuItemService {
     @Override
     public MenuItemResponseDTO createMenuItem(MenuItemRequestDTO request) {
 
+        log.info("Creating Menu Item");
         Long restaurantId = request.getRestaurantId();
 
-        // Feign validation will go here
+        RestaurantDTO restaurant = restaurantClient.getRestaurantById(restaurantId);
+
+        if (!restaurant.isActive()) {
+            throw new RuntimeException("Restaurant is not active");
+        }
 
         log.info("Creating Menu Item for restaurant Id: {}", restaurantId);
 
