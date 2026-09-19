@@ -84,11 +84,11 @@ public class MenuItemController {
 
 
     @PostMapping
-    public ResponseEntity<MenuItemResponseDTO> createMenuItemWithRestaurantId(
-            @Valid @RequestBody MenuItemRequestDTO request, @PathVariable Long restaurantId) {
+    public ResponseEntity<MenuItemResponseDTO> createMenuItem(
+            @Valid @RequestBody MenuItemRequestDTO request) {
 
         MenuItemResponseDTO response =
-                menuItemService.createMenuItemWithRestaurantId(request, restaurantId);
+                menuItemService.createMenuItem(request);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)

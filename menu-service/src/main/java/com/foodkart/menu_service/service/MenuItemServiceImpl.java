@@ -1,5 +1,6 @@
 package com.foodkart.menu_service.service;
 
+import com.foodkart.menu_service.client.RestaurantClient;
 import com.foodkart.menu_service.dto.MenuItemRequestDTO;
 import com.foodkart.menu_service.dto.MenuItemResponseDTO;
 import com.foodkart.menu_service.entity.MenuItem;
@@ -20,19 +21,16 @@ import java.time.LocalDateTime;
 public class MenuItemServiceImpl implements MenuItemService {
 
     private final MenuItemRepository menuItemRepository;
+    private final RestaurantClient restaurantClient;
 
     @Override
-    public MenuItemResponseDTO createMenuItemWithRestaurantId(MenuItemRequestDTO request, Long restaurantId){
+    public MenuItemResponseDTO createMenuItem(MenuItemRequestDTO request) {
 
-        if(restaurantId == -1 || restaurantId == 0){
-            throw new RuntimeException("Please provide a valid Restaurant Id!");
-        }
+        Long restaurantId = request.getRestaurantId();
 
-        if(request.getName().isBlank() || request.getDescription().isBlank()){
-            throw new RuntimeException("Menu can't be created without a name or description!");
-        }
+        // Feign validation will go here
 
-        log.info("Creating Menu Item for restaurant Id : {}", restaurantId);
+        log.info("Creating Menu Item for restaurant Id: {}", restaurantId);
 
         MenuItem menuItem = MenuItem.builder()
                 .restaurantId(restaurantId)
@@ -44,10 +42,6 @@ public class MenuItemServiceImpl implements MenuItemService {
                 .build();
 
         MenuItem savedMenuItem = menuItemRepository.save(menuItem);
-
-        if(savedMenuItem == null){
-            throw new RuntimeException("Failed to create Menu Item");
-        }
 
         return mapToResponse(savedMenuItem);
     }
@@ -62,18 +56,6 @@ public class MenuItemServiceImpl implements MenuItemService {
 
         return mapToResponse(menuItem);
     }
-
-//    @Override
-//    public Page<MenuItemResponseDTO> getMenuItemByRestaurantId(Long restaurantId, Long menuId){
-//        Pageable<MenuItem> menuItem = menuItemRepository.findByRestaurantIdAndMenuId(restaurantId, menuId);
-//
-//        if(menuItem==null) {
-//            throw new RuntimeException("Menu item or Restaurant doesn't exists: " + menuId);
-//        }
-//
-//        return menuItem.map(this::mapToResponse);
-//
-//    }
 
     @Override
     public Page<MenuItemResponseDTO> getAllMenuItemByRestaurantId(Long restaurantId, Pageable pageable){
@@ -135,7 +117,7 @@ public class MenuItemServiceImpl implements MenuItemService {
 
         MenuItem updatedMenuItem = menuItemRepository.save(menuItem);
 
-        if(updatedMenuItem.equals(null)){
+        if(updatedMenuItem == null){
             throw new RuntimeException("Failed to save Menu Item!");
         }
 

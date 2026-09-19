@@ -14,7 +14,7 @@ public interface MenuItemService {
     Page<MenuItemResponseDTO> getAllMenuItemByRestaurantId(Long restaurantId, Pageable pageable);
     Page<MenuItemResponseDTO> getAllMenuItemByRestaurantIdAndCategory(Long restaurantId,String category, Pageable pageable);
     Page<MenuItemResponseDTO> getAllAvailableMenuItemByRestaurantIdAndCategory(Long restaurantId,String category, Pageable pageable);
-    MenuItemResponseDTO createMenuItemWithRestaurantId(MenuItemRequestDTO request, Long restaurantId);
+    MenuItemResponseDTO createMenuItem(MenuItemRequestDTO request);
     MenuItemResponseDTO updateMenuItem(Long restaurantId, Long menuId, MenuItemRequestDTO request);
     void deleteMenuItem(Long restaurantId, Long menuId);
     Page<MenuItemResponseDTO> getAvailableMenuItemByRestaurantId(Long restaurantId, Pageable pageable);

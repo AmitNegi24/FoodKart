@@ -20,7 +20,7 @@ public class RestaurantController {
 
     private final RestaurantService restaurantService;
 
-    @PostMapping
+    @PostMapping("/create")
     public ResponseEntity<RestaurantResponseDTO> createRestaurant(
             @Valid @RequestBody RestaurantRequestDTO request) {
 
