@@ -46,6 +46,8 @@ public class MenuItemServiceImpl implements MenuItemService {
                 .category(request.getCategory())
                 .price(request.getPrice())
                 .available(request.getAvailable())
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
                 .build();
 
         MenuItem savedMenuItem = menuItemRepository.save(menuItem);
@@ -158,6 +160,8 @@ public class MenuItemServiceImpl implements MenuItemService {
                 .price(menuItem.getPrice())
                 .category(menuItem.getCategory())
                 .available(menuItem.getAvailable())
+                .createdAt(menuItem.getCreatedAt())
+                .updatedAt(menuItem.getUpdatedAt())
                 .build();
     }
 }
