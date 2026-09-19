@@ -3,8 +3,8 @@ spring:
     name: restaurant-service
 
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:foodkart_restaurant}
-    username: ${DB_USERNAME:postgres}
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME}
+    username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
@@ -17,7 +17,7 @@ spring:
         format_sql: true
 
 jwt:
-  secret: Y+n1CTDr77DlgiFAY3gYodVCy1zQdDRq7SC2NWJXu3c=
+  secret: ${JWT_SECRET}
 
 server:
   port: 8081
