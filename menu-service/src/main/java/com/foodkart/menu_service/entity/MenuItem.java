@@ -1,10 +1,13 @@
 package com.foodkart.menu_service.entity;
 
 import jakarta.persistence.*;
+import lombok.Builder;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
+@Builder
 @Table(
         name = "menu_items",
         indexes = {
@@ -32,6 +35,8 @@ public class MenuItem {
 
     @Column(nullable = false, length = 50)
     private String category;
+
+    //Feighnclient -- FoodId  + RestaurantId
 
     @Column(nullable = false)
     private Boolean available = true;
