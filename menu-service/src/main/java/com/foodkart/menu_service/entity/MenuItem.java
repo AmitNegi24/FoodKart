@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(
-        name = "menu_items",
+        name = "foodkart_menu_items",
         indexes = {
                 @Index(name = "idx_menu_restaurant_id", columnList = "restaurant_id"),
                 @Index(name = "idx_menu_category", columnList = "category")
