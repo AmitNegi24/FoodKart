@@ -39,6 +39,7 @@ public class MenuItemServiceImpl implements MenuItemService {
 
         MenuItem menuItem = MenuItem.builder()
                 .restaurantId(restaurantId)
+                .menuCategory(request.getMenuCategory())
                 .foodItemName(request.getFoodItemName())
                 .foodItemDescription(request.getFoodItemDescription())
                 .foodItemCategory(request.getFoodItemCategory())
@@ -115,6 +116,7 @@ public class MenuItemServiceImpl implements MenuItemService {
 
         MenuItem menuItem = menuItemRepository.findByRestaurantIdAndId(restaurantId, menuId);
 
+        menuItem.setMenuCategory(request.getMenuCategory());
         menuItem.setFoodItemName(request.getFoodItemName());
         menuItem.setFoodItemDescription(request.getFoodItemDescription());
         menuItem.setFoodItemPrice(request.getFoodItemPrice());
@@ -149,6 +151,7 @@ public class MenuItemServiceImpl implements MenuItemService {
         return MenuItemResponseDTO.builder()
                 .id(menuItem.getId())
                 .restaurantId(menuItem.getRestaurantId())
+                .menuCategory(menuItem.getMenuCategory())
                 .foodItemName(menuItem.getFoodItemName())
                 .foodItemDescription(menuItem.getFoodItemDescription())
                 .foodItemPrice(menuItem.getFoodItemPrice())
