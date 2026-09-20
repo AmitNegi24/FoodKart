@@ -3,10 +3,12 @@ spring:
     name: menu-service
 
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:foodkart_menu}
-    username: ${DB_USERNAME:postgres}
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME}
+    username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
+
+
 
   jpa:
     hibernate:
@@ -15,6 +17,10 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+#//secrets are exported to .env
+jwt:
+  secret: ${JWT_SECRET}
 
 restaurant-service:
   url: http://localhost:8081
