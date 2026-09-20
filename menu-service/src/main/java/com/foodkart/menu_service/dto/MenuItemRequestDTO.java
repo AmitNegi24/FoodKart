@@ -1,5 +1,7 @@
 package com.foodkart.menu_service.dto;
 
+import com.foodkart.menu_service.model.FoodItemCategory;
+import com.foodkart.menu_service.model.MenuCategory;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -19,20 +21,23 @@ public class MenuItemRequestDTO {
     private Long restaurantId;
 
     @NotBlank
+    private MenuCategory menuCategory;
+
+    @NotBlank
     @Size(max = 100)
-    private String name;
+    private String foodItemName;
 
     @Size(max = 500)
-    private String description;
+    private String foodItemDescription;
 
     @NotNull
     @DecimalMin(value = "0.0", inclusive = false)
-    private BigDecimal price;
+    private BigDecimal foodItemPrice;
 
     @NotBlank
-    private String category;
+    private FoodItemCategory foodItemCategory;
 
     @NotNull
-    private Boolean available;
+    private Boolean foodItemAvailable;
 
 }

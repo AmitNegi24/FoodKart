@@ -1,5 +1,7 @@
 package com.foodkart.menu_service.dto;
 
+import com.foodkart.menu_service.model.FoodItemCategory;
+import com.foodkart.menu_service.model.MenuCategory;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -14,11 +16,12 @@ public class MenuItemResponseDTO {
 
     private Long id;
     private Long restaurantId;
-    private String name;
-    private String description;
-    private BigDecimal price;
-    private String category;
-    private Boolean available;
+    private MenuCategory menuCategory;
+    private String foodItemName;
+    private String foodItemDescription;
+    private BigDecimal foodItemPrice;
+    private FoodItemCategory foodItemCategory;
+    private Boolean foodItemAvailable;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

@@ -28,20 +28,25 @@ public class MenuItem {
     @Column(name = "restaurant_id", nullable = false)
     private Long restaurantId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private String menuCategory;
+
     @Column(nullable = false, length = 100)
-    private String name;
+    private String foodItemName;
 
     @Column(length = 500)
-    private String description;
+    private String foodItemDescription;
 
     @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal price;
+    private BigDecimal foodItemPrice;
 
-    @Column(nullable = false, length = 50)
-    private String category;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private String foodItemCategory;
 
     @Column(nullable = false)
-    private Boolean available = true;
+    private Boolean foodItemAvailable = true;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
