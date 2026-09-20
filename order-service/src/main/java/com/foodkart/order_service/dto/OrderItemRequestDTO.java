@@ -10,7 +10,7 @@ import lombok.Setter;
 public class OrderItemRequestDTO {
 
     @NotNull(message = "Food ID is required")
-    private Long foodId;
+    private Long menuItemId;
     @Min(value = 1, message = "quantity cannot be less than 1")
     private Integer quantity;
 }

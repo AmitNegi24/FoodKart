@@ -80,7 +80,7 @@ public class RestaurantController {
         );
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/update/{id}")
     public ResponseEntity<RestaurantResponseDTO> updateRestaurant(
             @PathVariable Long id,
             @Valid @RequestBody RestaurantRequestDTO request) {
@@ -90,7 +90,7 @@ public class RestaurantController {
         );
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/delete/{id}")
     public ResponseEntity<Void> deleteRestaurant(
             @PathVariable Long id) {
 

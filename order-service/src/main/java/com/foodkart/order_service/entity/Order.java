@@ -36,6 +36,9 @@ public class Order {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(nullable = false,updatable = false)
+    private LocalDateTime updatedAt;
+
     @OneToMany(
             cascade = CascadeType.ALL,
             orphanRemoval = true
@@ -50,5 +53,9 @@ public class Order {
         if (status == null) {
             status = OrderStatus.PENDING;
         }
+    }
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 }

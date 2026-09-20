@@ -1,7 +1,6 @@
-package com.foodkart.order_service.service.impl;
+package com.foodkart.order_service.service;
 
-import com.foodkart.order_service.client.FoodClient;
-import com.foodkart.order_service.dto.OrderItemRequestDTO;
+import com.foodkart.order_service.client.MenuClient;
 import com.foodkart.order_service.dto.OrderItemResponseDTO;
 import com.foodkart.order_service.dto.OrderRequestDTO;
 import com.foodkart.order_service.dto.OrderResponseDTO;
@@ -25,7 +24,7 @@ import java.util.List;
 public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
-    private final FoodClient foodClient;
+    private final MenuClient foodClient;
 
     @Override
     public OrderResponseDTO createOrder(OrderRequestDTO request) {
@@ -46,7 +45,7 @@ public class OrderServiceImpl implements OrderService {
 
                     // Get current price from Food/Menu service
                     BigDecimal price =
-                            foodClient.getFoodPrice(item.getFoodId());
+                            foodClient.getFoodPrice(item.getMenuItemId());
 
                     // Calculate item price
 //                    BigDecimal itemTotal =
@@ -55,7 +54,7 @@ public class OrderServiceImpl implements OrderService {
 //                            );
 
                     return OrderItem.builder()
-                            .foodId(item.getFoodId())
+                            .menuItemId(item.getMenuItemId())
                             .quantity(item.getQuantity())
                             .price(price)
                             .build();
@@ -89,7 +88,7 @@ public class OrderServiceImpl implements OrderService {
                 savedOrder.getItems()
                         .stream()
                         .map(item -> OrderItemResponseDTO.builder()
-                                .foodId(item.getFoodId())
+                                .menuItemId(item.getMenuItemId())
                                 .quantity(item.getQuantity())
                                 .price(item.getPrice())
                                 .build()

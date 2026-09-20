@@ -2,7 +2,7 @@ package com.foodkart.order_service.client;
 
 import java.math.BigDecimal;
 
-public interface FoodClient {
+public interface MenuClient {
 
     BigDecimal getFoodPrice(Long foodId);
 }

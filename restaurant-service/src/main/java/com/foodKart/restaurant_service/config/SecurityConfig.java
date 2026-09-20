@@ -23,6 +23,10 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
 
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/restaurants/create",
+                                "/restaurants/update/{id}",
+                                "/restaurants/delete/{id}")
+                        .authenticated()
                         .requestMatchers("/actuator/health",
                                 "/restaurants/getAllRestaurants",
                                 "/restaurants/getActiveRestaurantsByCity",

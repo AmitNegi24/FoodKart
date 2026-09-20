@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class OrderItemResponseDTO {
 
-    private Long foodId;
+    private Long menuItemId;
 
     private Integer quantity;
 
