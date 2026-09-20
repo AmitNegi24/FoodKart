@@ -13,7 +13,11 @@ public class OrderItemResponseDTO {
 
     private Long menuItemId;
 
+    private String itemName;
+
     private Integer quantity;
 
     private BigDecimal price;
+
+    private BigDecimal subtotal;
 }

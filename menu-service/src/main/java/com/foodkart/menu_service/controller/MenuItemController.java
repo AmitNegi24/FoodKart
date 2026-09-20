@@ -98,7 +98,7 @@ public class MenuItemController {
                 .body(response);
     }
 
-    @PutMapping("/{restaurantId}/{menuId}")
+    @PutMapping("/update/{restaurantId}/{menuId}")
     public ResponseEntity<MenuItemResponseDTO> updateMenuItem(
             @PathVariable Long restaurantId, @PathVariable Long menuId,
             @Valid @RequestBody  MenuItemRequestDTO request){
@@ -112,7 +112,7 @@ public class MenuItemController {
 
     }
 
-    @DeleteMapping("/{restaurantId}/{menuId}")
+    @DeleteMapping("/delete/{restaurantId}/{menuId}")
     public ResponseEntity<Void> deleteMenuItem(
             @PathVariable Long restaurantId, @PathVariable Long menuId){
 

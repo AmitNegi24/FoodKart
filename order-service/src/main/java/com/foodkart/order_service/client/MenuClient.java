@@ -1,8 +1,10 @@
 package com.foodkart.order_service.client;
 
-import java.math.BigDecimal;
+import com.foodkart.order_service.dto.MenuItemDTO;
+import jakarta.validation.constraints.NotNull;
+
 
 public interface MenuClient {
 
-    BigDecimal getFoodPrice(Long foodId);
+    MenuItemDTO getMenuItemById(@NotNull(message = "Food ID is required") Long menuItemId);
 }

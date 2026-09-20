@@ -1,6 +1,7 @@
 package com.foodkart.order_service.service;
 
 import com.foodkart.order_service.client.MenuClient;
+import com.foodkart.order_service.dto.MenuItemDTO;
 import com.foodkart.order_service.dto.OrderItemResponseDTO;
 import com.foodkart.order_service.dto.OrderRequestDTO;
 import com.foodkart.order_service.dto.OrderResponseDTO;
@@ -16,6 +17,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -32,69 +34,94 @@ public class OrderServiceImpl implements OrderService {
         Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();
 
+        if (authentication == null || authentication.getPrincipal() == null) {
+            throw new IllegalStateException("User not authenticated");
+        }
+
         AuthenticatedUser authenticatedUser =
                 (AuthenticatedUser) authentication.getPrincipal();
 
         Long userId = authenticatedUser.getUserId();
 
-        // 2. Prepare order items
-        List<OrderItem> orderItems = request.getItems()
-                .stream()
-                .map(item -> {
-
-                    // Get current price from Food/Menu service
-                    BigDecimal price =
-                            menuClient.getFoodPrice(item.getMenuItemId());
-
-                    // Calculate item price
-//                    BigDecimal itemTotal =
-//                            price.multiply(
-//                                    BigDecimal.valueOf(item.getQuantity())
-//                            );
-
-                    return OrderItem.builder()
-                            .menuItemId(item.getMenuItemId())
-                            .quantity(item.getQuantity())
-                            .price(price)
-                            .build();
-
-                })
-                .toList();
-
-        // 3. Calculate complete order total
-        BigDecimal totalAmount = orderItems.stream()
-                .map(item ->
-                        item.getPrice().multiply(
-                                BigDecimal.valueOf(item.getQuantity())
-                        )
-                )
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        // 4. Create Order entity
+        // 2. Create Order
         Order order = Order.builder()
                 .userId(userId)
                 .restaurantId(request.getRestaurantId())
-                .totalAmount(totalAmount)
                 .status(OrderStatus.PENDING)
-                .items(orderItems)
+                .totalAmount(BigDecimal.ZERO)
+                .items(new ArrayList<>())
                 .build();
 
-        // 5. Save order
+        BigDecimal totalAmount = BigDecimal.ZERO;
+
+        // 3. Process each menu item
+        for (var itemRequest : request.getItems()) {
+
+            // Get menu item from Menu Service
+            MenuItemDTO menuItem =
+                    menuClient.getMenuItemById(itemRequest.getMenuItemId());
+
+            // 4. Check availability
+            if (!menuItem.isAvailable()) {
+                throw new RuntimeException(
+                        "Menu item is not available: " + menuItem.getName()
+                );
+            }
+
+            // 5. Check restaurant
+            if (!menuItem.getRestaurantId()
+                    .equals(request.getRestaurantId())) {
+
+                throw new RuntimeException(
+                        "Menu item does not belong to this restaurant: "
+                                + menuItem.getName()
+                );
+            }
+
+            // 6. Calculate subtotal
+            BigDecimal subtotal =
+                    menuItem.getPrice()
+                            .multiply(
+                                    BigDecimal.valueOf(itemRequest.getQuantity())
+                            );
+
+            // 7. Create OrderItem
+            OrderItem orderItem = OrderItem.builder()
+                    .order(order)
+                    .menuItemId(menuItem.getId())
+                    .itemName(menuItem.getName())
+                    .price(menuItem.getPrice())
+                    .quantity(itemRequest.getQuantity())
+                    .subtotal(subtotal)
+                    .build();
+
+            order.getItems().add(orderItem);
+
+            // 8. Add to order total
+            totalAmount = totalAmount.add(subtotal);
+        }
+
+        // 9. Set total amount
+        order.setTotalAmount(totalAmount);
+
+        // 10. Save Order
         Order savedOrder = orderRepository.save(order);
 
-        // 6. Convert entity to response DTO
+        // 11. Convert OrderItems to response DTO
         List<OrderItemResponseDTO> itemResponses =
                 savedOrder.getItems()
                         .stream()
                         .map(item -> OrderItemResponseDTO.builder()
                                 .menuItemId(item.getMenuItemId())
-                                .quantity(item.getQuantity())
+                                .itemName(item.getItemName())
                                 .price(item.getPrice())
+                                .quantity(item.getQuantity())
+                                .subtotal(item.getSubtotal())
                                 .build()
                         )
                         .toList();
 
-        // 7. Return response
+        // 12. Return response
         return OrderResponseDTO.builder()
                 .id(savedOrder.getId())
                 .userId(savedOrder.getUserId())
