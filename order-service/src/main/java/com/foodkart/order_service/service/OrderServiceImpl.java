@@ -9,7 +9,6 @@ import com.foodkart.order_service.entity.OrderItem;
 import com.foodkart.order_service.entity.OrderStatus;
 import com.foodkart.order_service.repository.OrderRepository;
 import com.foodkart.order_service.security.AuthenticatedUser;
-import com.foodkart.order_service.service.OrderService;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -24,7 +23,7 @@ import java.util.List;
 public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
-    private final MenuClient foodClient;
+    private final MenuClient menuClient;
 
     @Override
     public OrderResponseDTO createOrder(OrderRequestDTO request) {
@@ -45,7 +44,7 @@ public class OrderServiceImpl implements OrderService {
 
                     // Get current price from Food/Menu service
                     BigDecimal price =
-                            foodClient.getFoodPrice(item.getMenuItemId());
+                            menuClient.getFoodPrice(item.getMenuItemId());
 
                     // Calculate item price
 //                    BigDecimal itemTotal =
