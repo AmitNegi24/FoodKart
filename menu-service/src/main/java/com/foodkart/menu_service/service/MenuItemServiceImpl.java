@@ -6,10 +6,8 @@ import com.foodkart.menu_service.dto.MenuItemResponseDTO;
 import com.foodkart.menu_service.dto.RestaurantDTO;
 import com.foodkart.menu_service.entity.MenuItem;
 import com.foodkart.menu_service.repository.MenuItemRepository;
-import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
@@ -41,11 +39,11 @@ public class MenuItemServiceImpl implements MenuItemService {
 
         MenuItem menuItem = MenuItem.builder()
                 .restaurantId(restaurantId)
-                .name(request.getName())
-                .description(request.getDescription())
-                .category(request.getCategory())
-                .price(request.getPrice())
-                .available(request.getAvailable())
+                .foodItemName(request.getFoodItemName())
+                .foodItemDescription(request.getFoodItemDescription())
+                .foodItemCategory(request.getFoodItemCategory())
+                .foodItemPrice(request.getFoodItemPrice())
+                .foodItemAvailable(request.getFoodItemAvailable())
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
@@ -117,18 +115,14 @@ public class MenuItemServiceImpl implements MenuItemService {
 
         MenuItem menuItem = menuItemRepository.findByRestaurantIdAndId(restaurantId, menuId);
 
-        menuItem.setName(request.getName());
-        menuItem.setDescription(request.getDescription());
-        menuItem.setPrice(request.getPrice());
-        menuItem.setCategory(request.getCategory());
-        menuItem.setAvailable(request.getAvailable());
+        menuItem.setFoodItemName(request.getFoodItemName());
+        menuItem.setFoodItemDescription(request.getFoodItemDescription());
+        menuItem.setFoodItemPrice(request.getFoodItemPrice());
+        menuItem.setFoodItemCategory(request.getFoodItemCategory());
+        menuItem.setFoodItemAvailable(request.getFoodItemAvailable());
         menuItem.setUpdatedAt(LocalDateTime.now());
 
         MenuItem updatedMenuItem = menuItemRepository.save(menuItem);
-
-        if(updatedMenuItem == null){
-            throw new RuntimeException("Failed to save Menu Item!");
-        }
 
         return mapToResponse(updatedMenuItem);
     }
@@ -155,11 +149,11 @@ public class MenuItemServiceImpl implements MenuItemService {
         return MenuItemResponseDTO.builder()
                 .id(menuItem.getId())
                 .restaurantId(menuItem.getRestaurantId())
-                .name(menuItem.getName())
-                .description(menuItem.getDescription())
-                .price(menuItem.getPrice())
-                .category(menuItem.getCategory())
-                .available(menuItem.getAvailable())
+                .foodItemName(menuItem.getFoodItemName())
+                .foodItemDescription(menuItem.getFoodItemDescription())
+                .foodItemPrice(menuItem.getFoodItemPrice())
+                .foodItemCategory(menuItem.getFoodItemCategory())
+                .foodItemAvailable(menuItem.getFoodItemAvailable())
                 .createdAt(menuItem.getCreatedAt())
                 .updatedAt(menuItem.getUpdatedAt())
                 .build();
