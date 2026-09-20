@@ -1,5 +1,7 @@
 package com.foodkart.menu_service.entity;
 
+import com.foodkart.menu_service.model.FoodItemCategory;
+import com.foodkart.menu_service.model.MenuCategory;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -30,7 +32,7 @@ public class MenuItem {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String menuCategory;
+    private MenuCategory menuCategory;
 
     @Column(nullable = false, length = 100)
     private String foodItemName;
@@ -43,7 +45,7 @@ public class MenuItem {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String foodItemCategory;
+    private FoodItemCategory foodItemCategory;
 
     @Column(nullable = false)
     private Boolean foodItemAvailable = true;
