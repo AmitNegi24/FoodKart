@@ -5,6 +5,8 @@ import com.foodkart.menu_service.dto.MenuItemRequestDTO;
 import com.foodkart.menu_service.dto.MenuItemResponseDTO;
 import com.foodkart.menu_service.dto.RestaurantDTO;
 import com.foodkart.menu_service.entity.MenuItem;
+import com.foodkart.menu_service.model.FoodItemCategory;
+import com.foodkart.menu_service.model.MenuCategory;
 import com.foodkart.menu_service.repository.MenuItemRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -55,12 +57,20 @@ public class MenuItemServiceImpl implements MenuItemService {
     }
 
     @Override
-    public MenuItemResponseDTO getMenuItemByMenuId(Long menuId) {
+    public MenuItemResponseDTO getMenuItemByFoodItemId(Long foodItemId) {
 
-        MenuItem menuItem = menuItemRepository.findById(menuId)
+        MenuItem menuItem = menuItemRepository.findById(foodItemId)
                 .orElseThrow(() ->
-                        new RuntimeException("Menu item not found with id: " + menuId)
+                        new RuntimeException("Menu item not found with id: " + foodItemId)
                 );
+
+        return mapToResponse(menuItem);
+    }
+
+    @Override
+    public MenuItemResponseDTO getMenuItemByRestaurantIdAndFoodItemId(Long restaurantId, Long foodItemId){
+
+        MenuItem menuItem = menuItemRepository.findByRestaurantIdAndId(restaurantId, foodItemId);
 
         return mapToResponse(menuItem);
     }
@@ -75,34 +85,68 @@ public class MenuItemServiceImpl implements MenuItemService {
     }
 
     @Override
-    public Page<MenuItemResponseDTO> getAvailableMenuItemByRestaurantId(Long restaurantId, Pageable pageable){
+    public Page<MenuItemResponseDTO> getAllAvailableMenuItemByRestaurantId(Long restaurantId, Pageable pageable){
 
-        Page<MenuItem> menuItem = menuItemRepository.findAllMenusByRestaurantIdAndAvailableTrue(restaurantId, pageable);
-
-        return menuItem.map(this :: mapToResponse);
-    }
-
-    @Override
-    public Page<MenuItemResponseDTO> getAllMenuItemByRestaurantIdAndCategory(Long restaurantId,String category, Pageable pageable){
-
-        Page<MenuItem> menuItem = menuItemRepository.findByRestaurantIdAndCategory(restaurantId, category, pageable);
+        Page<MenuItem> menuItem = menuItemRepository.findAllByRestaurantIdAndAvailableTrue(restaurantId, pageable);
 
         return menuItem.map(this :: mapToResponse);
     }
 
     @Override
-    public Page<MenuItemResponseDTO> getAllAvailableMenuItemByRestaurantIdAndCategory(Long restaurantId,String category, Pageable pageable){
+    public Page<MenuItemResponseDTO> getAllMenuItemByRestaurantIdAndMenuCategory(Long restaurantId, MenuCategory menuCategory, Pageable pageable){
 
-        Page<MenuItem> menuItem = menuItemRepository.findByRestaurantIdAndCategoryAndAvailableTrue(restaurantId, category, pageable);
+        Page<MenuItem> menuItem = menuItemRepository.findAllByRestaurantIdAndMenuCategory(restaurantId, menuCategory, pageable);
 
         return menuItem.map(this :: mapToResponse);
     }
 
     @Override
-    public Page<MenuItemResponseDTO> getMenuItemsByRestaurantAndPriceRange(Long restaurantId, BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable) {
+    public Page<MenuItemResponseDTO> getAllAvailableMenuItemByRestaurantIdAndMenuCategory(Long restaurantId,MenuCategory menuCategory, Pageable pageable){
+
+        Page<MenuItem> menuItem = menuItemRepository.findAllByRestaurantIdAndMenuCategoryAndAvailableTrue(restaurantId, menuCategory, pageable);
+
+        return menuItem.map(this :: mapToResponse);
+    }
+
+    @Override
+    public Page<MenuItemResponseDTO> getAllMenuItemByRestaurantIdAndFoodItemCategory(Long restaurantId, FoodItemCategory foodItemCategory, Pageable pageable){
+
+        Page<MenuItem> menuItem = menuItemRepository.findAllByRestaurantIdAndFoodItemCategory(restaurantId, foodItemCategory, pageable);
+
+        return menuItem.map(this :: mapToResponse);
+    }
+    
+    @Override
+    public Page<MenuItemResponseDTO> getAllAvailableMenuItemByRestaurantIdAndFoodItemCategory(Long restaurantId, FoodItemCategory foodItemCategory, Pageable pageable){
+
+        Page<MenuItem> menuItem = menuItemRepository.findAllByRestaurantIdAndFoodItemCategoryAndAvailableTrue(restaurantId, foodItemCategory, pageable);
+
+        return menuItem.map(this :: mapToResponse);
+    }
+    
+    @Override
+    public Page<MenuItemResponseDTO> getAllMenuItemByRestaurantIdAndMenuCategoryAndFoodItemCategory(
+            Long restaurantId, MenuCategory menuCategory, FoodItemCategory foodItemCategory, Pageable pageable){
+        
+        Page<MenuItem> menuItem = menuItemRepository.findAllByRestaurantIdAndMenuCategoryAndFoodItemCategory(restaurantId, menuCategory, foodItemCategory, pageable);
+
+        return menuItem.map(this :: mapToResponse);
+    }
+    
+    @Override
+    public Page<MenuItemResponseDTO> getAllAvailableMenuItemByRestaurantIdAndMenuCategoryAndFoodItemCategory(
+            Long restaurantId, MenuCategory menuCategory, FoodItemCategory foodItemCategory, Pageable pageable){
+        
+        Page<MenuItem> menuItem = menuItemRepository.findAllByRestaurantIdAndMenuCategoryAndFoodItemCategoryAndAvailableTrue(restaurantId, menuCategory, foodItemCategory, pageable);
+
+        return menuItem.map(this :: mapToResponse);
+    }
+
+    @Override
+    public Page<MenuItemResponseDTO> getAllMenuItemByRestaurantIdAndPriceRange(Long restaurantId, BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable) {
 
         Page<MenuItem> menuItems = menuItemRepository
-                .findByRestaurantIdAndPriceBetween(restaurantId, minPrice, maxPrice, pageable);
+                .findAllByRestaurantIdAndPriceBetween(restaurantId, minPrice, maxPrice, pageable);
 
         return menuItems.map(this::mapToResponse);
     }

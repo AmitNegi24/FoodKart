@@ -10,10 +10,9 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(
-        name = "foodkart_menu_items",
+        name = "menu_items",
         indexes = {
-                @Index(name = "idx_menu_restaurant_id", columnList = "restaurant_id"),
-                @Index(name = "idx_menu_category", columnList = "category")
+                @Index(name = "idx_menu_restaurant_id", columnList = "restaurant_id")
         }
 )
 @Getter

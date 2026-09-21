@@ -2,6 +2,8 @@ package com.foodkart.menu_service.controller;
 
 import com.foodkart.menu_service.dto.MenuItemRequestDTO;
 import com.foodkart.menu_service.dto.MenuItemResponseDTO;
+import com.foodkart.menu_service.model.FoodItemCategory;
+import com.foodkart.menu_service.model.MenuCategory;
 import com.foodkart.menu_service.service.MenuItemService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,12 +25,21 @@ public class MenuItemController {
     private static final Logger log = LoggerFactory.getLogger(MenuItemController.class);
     private final MenuItemService menuItemService;
 
-    @GetMapping("/{menuId}")
-    public ResponseEntity<MenuItemResponseDTO> getMenuItemById(
-            @PathVariable Long menuId) {
+    @GetMapping("/food-items/{foodItemId}")
+    public ResponseEntity<MenuItemResponseDTO> getMenuItemByFoodItemId(
+            @PathVariable Long foodItemId) {
 
         MenuItemResponseDTO response =
-                menuItemService.getMenuItemByMenuId(menuId);
+                menuItemService.getMenuItemByFoodItemId(foodItemId);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/restaurants/{restaurantId}/food-items/{foodItemId}")
+    public ResponseEntity<MenuItemResponseDTO> getMenuItemByRestaurantIdAndFoodItemId(
+            @PathVariable Long restaurantId, Long foodItemId) {
+
+        MenuItemResponseDTO response = menuItemService.getMenuItemByRestaurantIdAndFoodItemId(restaurantId, foodItemId);
 
         return ResponseEntity.ok(response);
     }
@@ -42,45 +53,84 @@ public class MenuItemController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/restaurants/{restaurantId}/{category}")
-    public ResponseEntity<Page<MenuItemResponseDTO>> getAllMenuItemByRestaurantIdAndCategory(
-            @PathVariable Long restaurantId, @PathVariable String category, Pageable pageable){
-
-        Page<MenuItemResponseDTO> response = menuItemService.getAllMenuItemByRestaurantIdAndCategory(restaurantId, category, pageable);
-
-        return ResponseEntity.ok(response);
-
-    }
-
-    @GetMapping("/restaurants/{restaurantId}/{category}/available")
-    public ResponseEntity<Page<MenuItemResponseDTO>> getAllAvailableMenuItemByRestaurantIdAndCategory(
-            @PathVariable Long restaurantId, @PathVariable String category, Pageable pageable){
-
-        Page<MenuItemResponseDTO> response = menuItemService.getAllAvailableMenuItemByRestaurantIdAndCategory(restaurantId, category, pageable);
-
-        return ResponseEntity.ok(response);
-
-    }
-
     @GetMapping("/restaurants/{restaurantId}/available")
-    public ResponseEntity<Page<MenuItemResponseDTO>> getAvailableMenuItemByRestaurantId(
+    public ResponseEntity<Page<MenuItemResponseDTO>> getAllAvailableMenuItemByRestaurantId(
             @PathVariable Long restaurantId, Pageable pageable){
 
-        Page<MenuItemResponseDTO> response = menuItemService.getAvailableMenuItemByRestaurantId(restaurantId, pageable);
+        Page<MenuItemResponseDTO> response = menuItemService.getAllAvailableMenuItemByRestaurantId(restaurantId, pageable);
+
+        return ResponseEntity.ok(response);
+
+    }
+
+    @GetMapping("/restaurants/{restaurantId}/menus/{menuCategory}")
+    public ResponseEntity<Page<MenuItemResponseDTO>> getAllMenuItemByRestaurantIdAndMenuCategory(
+            @PathVariable Long restaurantId, @PathVariable MenuCategory menuCategory, Pageable pageable){
+
+            Page<MenuItemResponseDTO> response = menuItemService.getAllMenuItemByRestaurantIdAndMenuCategory(restaurantId, menuCategory, pageable);
+
+            return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/restaurants/{restaurantId}/menus/{menuCategory}/available")
+    public ResponseEntity<Page<MenuItemResponseDTO>> getAllAvailableMenuItemByRestaurantIdAndMenuCategory(
+            @PathVariable Long restaurantId, @PathVariable MenuCategory menuCategory, Pageable pageable){
+
+        Page<MenuItemResponseDTO> response = menuItemService.getAllAvailableMenuItemByRestaurantIdAndMenuCategory(restaurantId, menuCategory, pageable);
+
+        return ResponseEntity.ok(response);
+
+    }
+
+    @GetMapping("/restaurants/{restaurantId}/food-items/{foodItemCategory}")
+    public ResponseEntity<Page<MenuItemResponseDTO>> getAllMenuItemByRestaurantIdAndFoodItemCategory(
+            @PathVariable Long restaurantId, @PathVariable FoodItemCategory foodItemCategory, Pageable pageable){
+
+        Page<MenuItemResponseDTO> response = menuItemService.getAllMenuItemByRestaurantIdAndFoodItemCategory(restaurantId, foodItemCategory, pageable);
+
+        return ResponseEntity.ok(response);
+
+    }
+
+    @GetMapping("/restaurants/{restaurantId}/food-items/{foodItemCategory}/available")
+    public ResponseEntity<Page<MenuItemResponseDTO>> getAllAvailableMenuItemByRestaurantIdAndFoodItemCategory(
+            @PathVariable Long restaurantId, @PathVariable FoodItemCategory foodItemCategory, Pageable pageable){
+
+        Page<MenuItemResponseDTO> response = menuItemService.getAllAvailableMenuItemByRestaurantIdAndFoodItemCategory(restaurantId, foodItemCategory, pageable);
+
+        return ResponseEntity.ok(response);
+
+    }
+
+    @GetMapping("/restaurants/{restaurantId}/menus/{menuCategory}/food-items/{foodItemCategory}/")
+    public ResponseEntity<Page<MenuItemResponseDTO>> getAllMenuItemByRestaurantIdAndMenuCategoryAndFoodItemCategory(
+            @PathVariable Long restaurantId, @PathVariable MenuCategory menuCategory, @PathVariable FoodItemCategory foodItemCategory, Pageable pageable){
+
+        Page<MenuItemResponseDTO> response = menuItemService.getAllMenuItemByRestaurantIdAndMenuCategoryAndFoodItemCategory(restaurantId, menuCategory, foodItemCategory, pageable);
+
+        return ResponseEntity.ok(response);
+
+    }
+
+    @GetMapping("/restaurants/{restaurantId}/menus/{menuCategory}/food-items/{foodItemCategory}/available")
+    public ResponseEntity<Page<MenuItemResponseDTO>> getAllAvailableMenuItemByRestaurantIdAndMenuCategoryAndFoodItemCategory(
+            @PathVariable Long restaurantId, @PathVariable MenuCategory menuCategory, @PathVariable FoodItemCategory foodItemCategory, Pageable pageable){
+
+        Page<MenuItemResponseDTO> response = menuItemService.getAllAvailableMenuItemByRestaurantIdAndMenuCategoryAndFoodItemCategory(restaurantId, menuCategory, foodItemCategory, pageable);
 
         return ResponseEntity.ok(response);
 
     }
 
     @GetMapping("/restaurants/{restaurantId}/by-price")
-    public ResponseEntity<Page<MenuItemResponseDTO>> getMenuItemsByPriceRange(
+    public ResponseEntity<Page<MenuItemResponseDTO>> getAllMenuItemByRestaurantIdAndPriceRange(
             @PathVariable Long restaurantId,
             @RequestParam BigDecimal minPrice,
             @RequestParam BigDecimal maxPrice,
             Pageable pageable) {
 
         Page<MenuItemResponseDTO> response =
-                menuItemService.getMenuItemsByRestaurantAndPriceRange(restaurantId, minPrice, maxPrice, pageable);
+                menuItemService.getAllMenuItemByRestaurantIdAndPriceRange(restaurantId, minPrice, maxPrice, pageable);
 
         return ResponseEntity.ok(response);
     }
