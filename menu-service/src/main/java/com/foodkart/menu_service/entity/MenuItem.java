@@ -3,6 +3,7 @@ package com.foodkart.menu_service.entity;
 import com.foodkart.menu_service.model.FoodItemCategory;
 import com.foodkart.menu_service.model.MenuCategory;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -30,6 +31,7 @@ public class MenuItem {
     private Long restaurantId;
 
     @Enumerated(EnumType.STRING)
+    @NotNull
     @Column(nullable = false)
     private MenuCategory menuCategory;
 
@@ -43,11 +45,12 @@ public class MenuItem {
     private BigDecimal foodItemPrice;
 
     @Enumerated(EnumType.STRING)
+    @NotNull
     @Column(nullable = false)
     private FoodItemCategory foodItemCategory;
 
-    @Column(nullable = false)
-    private Boolean foodItemAvailable = true;
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private Boolean foodItemAvailable;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

@@ -20,7 +20,7 @@ public class MenuItemRequestDTO {
     @NotNull
     private Long restaurantId;
 
-    @NotBlank
+    @NotNull(message = "Menu category is required")
     private MenuCategory menuCategory;
 
     @NotBlank
@@ -34,7 +34,7 @@ public class MenuItemRequestDTO {
     @DecimalMin(value = "0.0", inclusive = false)
     private BigDecimal foodItemPrice;
 
-    @NotBlank
+    @NotNull(message = "Food item category is required")
     private FoodItemCategory foodItemCategory;
 
     @NotNull
