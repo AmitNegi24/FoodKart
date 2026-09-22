@@ -87,7 +87,7 @@ public class MenuItemServiceImpl implements MenuItemService {
     @Override
     public Page<MenuItemResponseDTO> getAllAvailableMenuItemByRestaurantId(Long restaurantId, Pageable pageable){
 
-        Page<MenuItem> menuItem = menuItemRepository.findAllByRestaurantIdAndAvailableTrue(restaurantId, pageable);
+        Page<MenuItem> menuItem = menuItemRepository.findAllByRestaurantIdAndFoodItemAvailableTrue(restaurantId, pageable);
 
         return menuItem.map(this :: mapToResponse);
     }
@@ -103,7 +103,7 @@ public class MenuItemServiceImpl implements MenuItemService {
     @Override
     public Page<MenuItemResponseDTO> getAllAvailableMenuItemByRestaurantIdAndMenuCategory(Long restaurantId,MenuCategory menuCategory, Pageable pageable){
 
-        Page<MenuItem> menuItem = menuItemRepository.findAllByRestaurantIdAndMenuCategoryAndAvailableTrue(restaurantId, menuCategory, pageable);
+        Page<MenuItem> menuItem = menuItemRepository.findAllByRestaurantIdAndMenuCategoryAndFoodItemAvailableTrue(restaurantId, menuCategory, pageable);
 
         return menuItem.map(this :: mapToResponse);
     }
@@ -119,7 +119,7 @@ public class MenuItemServiceImpl implements MenuItemService {
     @Override
     public Page<MenuItemResponseDTO> getAllAvailableMenuItemByRestaurantIdAndFoodItemCategory(Long restaurantId, FoodItemCategory foodItemCategory, Pageable pageable){
 
-        Page<MenuItem> menuItem = menuItemRepository.findAllByRestaurantIdAndFoodItemCategoryAndAvailableTrue(restaurantId, foodItemCategory, pageable);
+        Page<MenuItem> menuItem = menuItemRepository.findAllByRestaurantIdAndFoodItemCategoryAndFoodItemAvailableTrue(restaurantId, foodItemCategory, pageable);
 
         return menuItem.map(this :: mapToResponse);
     }
@@ -137,7 +137,7 @@ public class MenuItemServiceImpl implements MenuItemService {
     public Page<MenuItemResponseDTO> getAllAvailableMenuItemByRestaurantIdAndMenuCategoryAndFoodItemCategory(
             Long restaurantId, MenuCategory menuCategory, FoodItemCategory foodItemCategory, Pageable pageable){
         
-        Page<MenuItem> menuItem = menuItemRepository.findAllByRestaurantIdAndMenuCategoryAndFoodItemCategoryAndAvailableTrue(restaurantId, menuCategory, foodItemCategory, pageable);
+        Page<MenuItem> menuItem = menuItemRepository.findAllByRestaurantIdAndMenuCategoryAndFoodItemCategoryAndFoodItemAvailableTrue(restaurantId, menuCategory, foodItemCategory, pageable);
 
         return menuItem.map(this :: mapToResponse);
     }
@@ -146,7 +146,7 @@ public class MenuItemServiceImpl implements MenuItemService {
     public Page<MenuItemResponseDTO> getAllMenuItemByRestaurantIdAndPriceRange(Long restaurantId, BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable) {
 
         Page<MenuItem> menuItems = menuItemRepository
-                .findAllByRestaurantIdAndPriceBetween(restaurantId, minPrice, maxPrice, pageable);
+                .findAllByRestaurantIdAndFoodItemPriceBetween(restaurantId, minPrice, maxPrice, pageable);
 
         return menuItems.map(this::mapToResponse);
     }
