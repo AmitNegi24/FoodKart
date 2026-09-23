@@ -1,5 +1,6 @@
 package com.foodkart.menu_service.exception;
 
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -59,40 +60,35 @@ public class GlobalExceptionHandler {
 //    }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ErrorResponse> handleInvalidEnum(HttpMessageNotReadableException ex,
-                                                           HttpServletRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse();
-        errorResponse.setTimestamp(LocalDateTime.now());
-        errorResponse.setStatus(HttpStatus.BAD_REQUEST.value());
-        errorResponse.setError("Bad Request");
-        errorResponse.setPath(request.getRequestURI());
+    public ResponseEntity<Map<String, String>> handleInvalidEnum(
+            HttpMessageNotReadableException ex) {
 
         Throwable cause = ex.getCause();
-        com.fasterxml.jackson.databind.exc.InvalidFormatException invalidFormatException = findInvalidFormatException(cause);
 
-        if (invalidFormatException != null
-                && invalidFormatException.getTargetType() != null
+        if (cause instanceof InvalidFormatException invalidFormatException
                 && invalidFormatException.getTargetType().isEnum()) {
 
-            String validValues = Arrays.toString(invalidFormatException.getTargetType().getEnumConstants());
-            errorResponse.setMessage("Invalid value '" + invalidFormatException.getValue() +
-                    "'. Valid values are: " + validValues);
-        } else {
-            errorResponse.setMessage("Malformed JSON or invalid request body");
+            String invalidValue =
+                    invalidFormatException.getValue().toString();
+
+            Class<?> enumClass =
+                    invalidFormatException.getTargetType();
+
+            String validValues =
+                    Arrays.toString(enumClass.getEnumConstants());
+
+            String message =
+                    "Invalid value '" + invalidValue +
+                            "'. Allowed values are: " + validValues;
+
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", message));
         }
 
-        return ResponseEntity.badRequest().body(errorResponse);
-    }
-
-    private com.fasterxml.jackson.databind.exc.InvalidFormatException findInvalidFormatException(Throwable throwable) {
-        Throwable current = throwable;
-        while (current != null) {
-            if (current instanceof com.fasterxml.jackson.databind.exc.InvalidFormatException) {
-                return (com.fasterxml.jackson.databind.exc.InvalidFormatException) current;
-            }
-            current = current.getCause();
-        }
-        return null;
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("message", "Invalid Enum Value"));
     }
 
     //MenuItemNotFound exception handler by Amit Negi
