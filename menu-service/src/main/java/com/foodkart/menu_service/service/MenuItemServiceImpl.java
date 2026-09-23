@@ -3,6 +3,7 @@ package com.foodkart.menu_service.service;
 import com.foodkart.menu_service.client.RestaurantClient;
 import com.foodkart.menu_service.dto.*;
 import com.foodkart.menu_service.entity.MenuItem;
+import com.foodkart.menu_service.exception.MenuItemNotFoundException;
 import com.foodkart.menu_service.model.FoodItemCategory;
 import com.foodkart.menu_service.model.MenuCategory;
 import com.foodkart.menu_service.repository.MenuItemRepository;
@@ -64,7 +65,7 @@ public class MenuItemServiceImpl implements MenuItemService {
 
         MenuItem menuItem = menuItemRepository.findById(foodItemId)
                 .orElseThrow(() ->
-                        new RuntimeException("Menu item not found with id: " + foodItemId)
+                        new MenuItemNotFoundException("Menu item not found with id: " + foodItemId)
                 );
 
         return mapToResponse(menuItem);
