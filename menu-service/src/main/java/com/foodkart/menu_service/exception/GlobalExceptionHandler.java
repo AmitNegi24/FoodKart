@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -34,25 +35,49 @@ public class GlobalExceptionHandler {
                 .body(errorResponse);
     }
 
-    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<ErrorResponse> handleEnumBindingError(
-            MethodArgumentTypeMismatchException ex,
-            HttpServletRequest request) {
+//    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+//    public ResponseEntity<ErrorResponse> handleEnumBindingError(
+//            MethodArgumentTypeMismatchException ex,
+//            HttpServletRequest request) {
+//
+//        ErrorResponse errorResponse = new ErrorResponse();
+//        errorResponse.setTimestamp(LocalDateTime.now());
+//        errorResponse.setStatus(HttpStatus.BAD_REQUEST.value());
+//        errorResponse.setError("Bad Request");
+//
+//        if (ex.getRequiredType() != null && ex.getRequiredType().isEnum()) {
+//            String validValues = Arrays.toString(ex.getRequiredType().getEnumConstants());
+//            errorResponse.setMessage("Invalid value '" + ex.getValue() +
+//                    "'. Valid values are: " + validValues);
+//        } else {
+//            errorResponse.setMessage("Invalid request parameter");
+//        }
+//
+//        errorResponse.setPath(request.getRequestURI());
+//
+//        return ResponseEntity.badRequest().body(errorResponse);
+//    }
 
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidEnum(HttpMessageNotReadableException ex,
+                                                           HttpServletRequest request) {
         ErrorResponse errorResponse = new ErrorResponse();
         errorResponse.setTimestamp(LocalDateTime.now());
         errorResponse.setStatus(HttpStatus.BAD_REQUEST.value());
         errorResponse.setError("Bad Request");
+        errorResponse.setPath(request.getRequestURI());
 
-        if (ex.getRequiredType() != null && ex.getRequiredType().isEnum()) {
-            String validValues = Arrays.toString(ex.getRequiredType().getEnumConstants());
-            errorResponse.setMessage("Invalid value '" + ex.getValue() +
+        Throwable cause = ex.getCause();
+        if (cause instanceof com.fasterxml.jackson.databind.exc.InvalidFormatException ife
+                && ife.getTargetType() != null
+                && ife.getTargetType().isEnum()) {
+
+            String validValues = Arrays.toString(ife.getTargetType().getEnumConstants());
+            errorResponse.setMessage("Invalid value '" + ife.getValue() +
                     "'. Valid values are: " + validValues);
         } else {
-            errorResponse.setMessage("Invalid request parameter");
+            errorResponse.setMessage("Malformed JSON or invalid request body");
         }
-
-        errorResponse.setPath(request.getRequestURI());
 
         return ResponseEntity.badRequest().body(errorResponse);
     }

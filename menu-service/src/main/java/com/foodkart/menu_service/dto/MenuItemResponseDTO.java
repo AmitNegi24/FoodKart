@@ -14,15 +14,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class MenuItemResponseDTO {
 
-    private Long id;
     private Long restaurantId;
     private MenuCategory menuCategory;
-    private String foodItemName;
-    private String foodItemDescription;
-    private BigDecimal foodItemPrice;
-    private FoodItemCategory foodItemCategory;
-    private Boolean foodItemAvailable;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private FoodItemDTO foodItem;
 
 }
