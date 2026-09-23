@@ -1,6 +1,7 @@
 package com.foodkart.menu_service.service;
 
 import com.foodkart.menu_service.client.RestaurantClient;
+import com.foodkart.menu_service.dto.FoodItemDTO;
 import com.foodkart.menu_service.dto.MenuItemRequestDTO;
 import com.foodkart.menu_service.dto.MenuItemResponseDTO;
 import com.foodkart.menu_service.dto.RestaurantDTO;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -53,7 +55,10 @@ public class MenuItemServiceImpl implements MenuItemService {
 
         MenuItem savedMenuItem = menuItemRepository.save(menuItem);
 
-        return mapToResponse(savedMenuItem);
+        //Intention is to return foodItemId to response
+        MenuItem fetchMenuItem = menuItemRepository.findByRestaurantIdAndId(savedMenuItem.getRestaurantId(), savedMenuItem.getId());
+
+        return mapToResponse(fetchMenuItem);
     }
 
     @Override
@@ -71,6 +76,11 @@ public class MenuItemServiceImpl implements MenuItemService {
     public MenuItemResponseDTO getMenuItemByRestaurantIdAndFoodItemId(Long restaurantId, Long foodItemId){
 
         MenuItem menuItem = menuItemRepository.findByRestaurantIdAndId(restaurantId, foodItemId);
+
+        if (menuItem == null) {
+            log.error("Menu item not found with RestaurantId: {}, FoodItemId: {} ", restaurantId, foodItemId);
+            return null;
+        }
 
         return mapToResponse(menuItem);
     }
@@ -152,13 +162,13 @@ public class MenuItemServiceImpl implements MenuItemService {
     }
 
     @Override
-    public MenuItemResponseDTO updateMenuItem(Long restaurantId, Long menuId, MenuItemRequestDTO request){
+    public MenuItemResponseDTO updateMenuItem(Long restaurantId, Long foodItemId, MenuItemRequestDTO request){
 
-        if((restaurantId==0 || menuId == 0)||(restaurantId==-1 || menuId == -1)){
+        if((restaurantId==0 || foodItemId == 0)||(restaurantId==-1 || foodItemId == -1)){
             throw new RuntimeException("RestaurantId or MenuId not Found");
         }
 
-        MenuItem menuItem = menuItemRepository.findByRestaurantIdAndId(restaurantId, menuId);
+        MenuItem menuItem = menuItemRepository.findByRestaurantIdAndId(restaurantId, foodItemId);
 
         menuItem.setMenuCategory(request.getMenuCategory());
         menuItem.setFoodItemName(request.getFoodItemName());
@@ -192,17 +202,21 @@ public class MenuItemServiceImpl implements MenuItemService {
 
     private MenuItemResponseDTO mapToResponse(MenuItem menuItem){
 
-        return MenuItemResponseDTO.builder()
+        FoodItemDTO foodItemDTO = FoodItemDTO.builder()
                 .id(menuItem.getId())
-                .restaurantId(menuItem.getRestaurantId())
-                .menuCategory(menuItem.getMenuCategory())
-                .foodItemName(menuItem.getFoodItemName())
-                .foodItemDescription(menuItem.getFoodItemDescription())
-                .foodItemPrice(menuItem.getFoodItemPrice())
-                .foodItemCategory(menuItem.getFoodItemCategory())
-                .foodItemAvailable(menuItem.getFoodItemAvailable())
+                .name(menuItem.getFoodItemName())
+                .description(menuItem.getFoodItemDescription())
+                .price(menuItem.getFoodItemPrice())
+                .category(menuItem.getFoodItemCategory())
+                .available(menuItem.getFoodItemAvailable())
                 .createdAt(menuItem.getCreatedAt())
                 .updatedAt(menuItem.getUpdatedAt())
+                .build();
+
+        return MenuItemResponseDTO.builder()
+                .restaurantId(menuItem.getRestaurantId())
+                .menuCategory(menuItem.getMenuCategory())
+                .foodItem(foodItemDTO)
                 .build();
     }
 }

@@ -63,7 +63,7 @@ public class MenuItemController {
 
     }
 
-    @GetMapping("/restaurants/{restaurantId}/menus/{menuCategory}")
+    @GetMapping("/restaurants/{restaurantId}/menu-category/{menuCategory}")
     public ResponseEntity<Page<MenuItemResponseDTO>> getAllMenuItemByRestaurantIdAndMenuCategory(
             @PathVariable Long restaurantId, @PathVariable MenuCategory menuCategory, Pageable pageable){
 
@@ -72,7 +72,7 @@ public class MenuItemController {
             return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/restaurants/{restaurantId}/menus/{menuCategory}/available")
+    @GetMapping("/restaurants/{restaurantId}/menu-category/{menuCategory}/available")
     public ResponseEntity<Page<MenuItemResponseDTO>> getAllAvailableMenuItemByRestaurantIdAndMenuCategory(
             @PathVariable Long restaurantId, @PathVariable MenuCategory menuCategory, Pageable pageable){
 
@@ -82,7 +82,7 @@ public class MenuItemController {
 
     }
 
-    @GetMapping("/restaurants/{restaurantId}/food-items/{foodItemCategory}")
+    @GetMapping("/restaurants/{restaurantId}/food-item-category/{foodItemCategory}")
     public ResponseEntity<Page<MenuItemResponseDTO>> getAllMenuItemByRestaurantIdAndFoodItemCategory(
             @PathVariable Long restaurantId, @PathVariable FoodItemCategory foodItemCategory, Pageable pageable){
 
@@ -92,7 +92,7 @@ public class MenuItemController {
 
     }
 
-    @GetMapping("/restaurants/{restaurantId}/food-items/{foodItemCategory}/available")
+    @GetMapping("/restaurants/{restaurantId}/food-item-category/{foodItemCategory}/available")
     public ResponseEntity<Page<MenuItemResponseDTO>> getAllAvailableMenuItemByRestaurantIdAndFoodItemCategory(
             @PathVariable Long restaurantId, @PathVariable FoodItemCategory foodItemCategory, Pageable pageable){
 
@@ -102,7 +102,7 @@ public class MenuItemController {
 
     }
 
-    @GetMapping("/restaurants/{restaurantId}/menus/{menuCategory}/food-items/{foodItemCategory}/")
+    @GetMapping("/restaurants/{restaurantId}/menu-category/{menuCategory}/food-item-category/{foodItemCategory}/")
     public ResponseEntity<Page<MenuItemResponseDTO>> getAllMenuItemByRestaurantIdAndMenuCategoryAndFoodItemCategory(
             @PathVariable Long restaurantId, @PathVariable MenuCategory menuCategory, @PathVariable FoodItemCategory foodItemCategory, Pageable pageable){
 
@@ -112,7 +112,7 @@ public class MenuItemController {
 
     }
 
-    @GetMapping("/restaurants/{restaurantId}/menus/{menuCategory}/food-items/{foodItemCategory}/available")
+    @GetMapping("/restaurants/{restaurantId}/menu-category/{menuCategory}/food-item-category/{foodItemCategory}/available")
     public ResponseEntity<Page<MenuItemResponseDTO>> getAllAvailableMenuItemByRestaurantIdAndMenuCategoryAndFoodItemCategory(
             @PathVariable Long restaurantId, @PathVariable MenuCategory menuCategory, @PathVariable FoodItemCategory foodItemCategory, Pageable pageable){
 
@@ -148,13 +148,13 @@ public class MenuItemController {
                 .body(response);
     }
 
-    @PutMapping("/update/{restaurantId}/{menuId}")
+    @PutMapping("/update/restaurants/{restaurantId}/food-items/{foodItemId}")
     public ResponseEntity<MenuItemResponseDTO> updateMenuItem(
-            @PathVariable Long restaurantId, @PathVariable Long menuId,
+            @PathVariable Long restaurantId, @PathVariable Long foodItemId,
             @Valid @RequestBody  MenuItemRequestDTO request){
 
         MenuItemResponseDTO response =
-                menuItemService.updateMenuItem(restaurantId, menuId, request);
+                menuItemService.updateMenuItem(restaurantId, foodItemId, request);
 
         return ResponseEntity
                 .status(HttpStatus.OK)
@@ -162,11 +162,11 @@ public class MenuItemController {
 
     }
 
-    @DeleteMapping("/delete/{restaurantId}/{menuId}")
+    @DeleteMapping("/delete/restaurants/{restaurantId}/food-items/{foodItemId}")
     public ResponseEntity<Void> deleteMenuItem(
-            @PathVariable Long restaurantId, @PathVariable Long menuId){
+            @PathVariable Long restaurantId, @PathVariable Long foodItemId){
 
-        menuItemService.deleteMenuItem(restaurantId, menuId);
+        menuItemService.deleteMenuItem(restaurantId, foodItemId);
 
         return ResponseEntity.noContent().build();
     }
