@@ -2,6 +2,7 @@ package com.foodkart.menu_service.dto;
 
 import com.foodkart.menu_service.model.FoodItemCategory;
 import com.foodkart.menu_service.model.MenuCategory;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -23,21 +24,8 @@ public class MenuItemRequestDTO {
     @NotNull(message = "Menu category is required")
     private MenuCategory menuCategory;
 
-    @NotBlank
-    @Size(max = 100)
-    private String foodItemName;
-
-    @Size(max = 500)
-    private String foodItemDescription;
-
-    @NotNull
-    @DecimalMin(value = "0.0", inclusive = false)
-    private BigDecimal foodItemPrice;
-
-    @NotNull(message = "Food item category is required")
-    private FoodItemCategory foodItemCategory;
-
-    @NotNull
-    private Boolean foodItemAvailable;
+    @NotNull(message = "Food item is required")
+    @Valid
+    private FoodItemRequestDTO foodItem;
 
 }

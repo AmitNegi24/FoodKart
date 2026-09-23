@@ -163,11 +163,11 @@ public class MenuItemController {
     }
 
     @DeleteMapping("/delete/restaurants/{restaurantId}/food-items/{foodItemId}")
-    public ResponseEntity<Void> deleteMenuItem(
+    public ResponseEntity<String> deleteMenuItem(
             @PathVariable Long restaurantId, @PathVariable Long foodItemId){
 
         menuItemService.deleteMenuItem(restaurantId, foodItemId);
 
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok("Deleted successfully");
     }
 }

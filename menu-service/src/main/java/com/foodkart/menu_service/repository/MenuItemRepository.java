@@ -22,4 +22,5 @@ public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
     Page<MenuItem> findAllByRestaurantIdAndMenuCategoryAndFoodItemCategoryAndFoodItemAvailableTrue(Long restaurantId, MenuCategory menuCategory, FoodItemCategory foodItemCategory, Pageable pageable);
     Page<MenuItem> findAllByRestaurantIdAndFoodItemPriceBetween(Long restaurantId, BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable);
     void deleteByRestaurantIdAndId(Long restaurantId, Long menuId);
+    boolean existsByRestaurantIdAndId(Long restaurantId, Long id);
 }

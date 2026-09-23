@@ -15,7 +15,8 @@ import java.time.LocalDateTime;
 public class MenuItemResponseDTO {
 
     private Long restaurantId;
+    private Long foodItemId;
     private MenuCategory menuCategory;
-    private FoodItemDTO foodItem;
+    private FoodItemRequestDTO foodItem;
 
 }

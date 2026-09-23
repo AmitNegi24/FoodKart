@@ -1,10 +1,7 @@
 package com.foodkart.menu_service.service;
 
 import com.foodkart.menu_service.client.RestaurantClient;
-import com.foodkart.menu_service.dto.FoodItemDTO;
-import com.foodkart.menu_service.dto.MenuItemRequestDTO;
-import com.foodkart.menu_service.dto.MenuItemResponseDTO;
-import com.foodkart.menu_service.dto.RestaurantDTO;
+import com.foodkart.menu_service.dto.*;
 import com.foodkart.menu_service.entity.MenuItem;
 import com.foodkart.menu_service.model.FoodItemCategory;
 import com.foodkart.menu_service.model.MenuCategory;
@@ -14,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -44,11 +42,11 @@ public class MenuItemServiceImpl implements MenuItemService {
         MenuItem menuItem = MenuItem.builder()
                 .restaurantId(restaurantId)
                 .menuCategory(request.getMenuCategory())
-                .foodItemName(request.getFoodItemName())
-                .foodItemDescription(request.getFoodItemDescription())
-                .foodItemCategory(request.getFoodItemCategory())
-                .foodItemPrice(request.getFoodItemPrice())
-                .foodItemAvailable(request.getFoodItemAvailable())
+                .foodItemName(request.getFoodItem().getName())
+                .foodItemDescription(request.getFoodItem().getDescription())
+                .foodItemCategory(request.getFoodItem().getCategory())
+                .foodItemPrice(request.getFoodItem().getPrice())
+                .foodItemAvailable(request.getFoodItem().getAvailable())
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
@@ -171,11 +169,11 @@ public class MenuItemServiceImpl implements MenuItemService {
         MenuItem menuItem = menuItemRepository.findByRestaurantIdAndId(restaurantId, foodItemId);
 
         menuItem.setMenuCategory(request.getMenuCategory());
-        menuItem.setFoodItemName(request.getFoodItemName());
-        menuItem.setFoodItemDescription(request.getFoodItemDescription());
-        menuItem.setFoodItemPrice(request.getFoodItemPrice());
-        menuItem.setFoodItemCategory(request.getFoodItemCategory());
-        menuItem.setFoodItemAvailable(request.getFoodItemAvailable());
+        menuItem.setFoodItemName(request.getFoodItem().getName());
+        menuItem.setFoodItemDescription(request.getFoodItem().getDescription());
+        menuItem.setFoodItemPrice(request.getFoodItem().getPrice());
+        menuItem.setFoodItemCategory(request.getFoodItem().getCategory());
+        menuItem.setFoodItemAvailable(request.getFoodItem().getAvailable());
         menuItem.setUpdatedAt(LocalDateTime.now());
 
         MenuItem updatedMenuItem = menuItemRepository.save(menuItem);
@@ -184,26 +182,43 @@ public class MenuItemServiceImpl implements MenuItemService {
     }
 
     @Override
-    public void deleteMenuItem(Long restaurantId, Long menuId){
+    @Transactional
+    public void deleteMenuItem(Long restaurantId, Long menuId) {
 
-        log.info("Deleting restaurant with id: {}, for Restaurant Id: {}", menuId, restaurantId);
+        log.info(
+                "Deleting menu item with id: {}, for Restaurant Id: {}",
+                menuId,
+                restaurantId
+        );
 
-        if (!menuItemRepository.existsById(menuId)) {
-            log.warn("Restaurant not found with id while deleting:" +menuId);
+        if (!menuItemRepository.existsByRestaurantIdAndId(restaurantId, menuId)) {
+            log.warn(
+                    "MenuItem not found with id: {} for Restaurant Id: {}",
+                    menuId,
+                    restaurantId
+            );
+
             throw new RuntimeException(
-                    "Restaurant not found with id: " + menuId);
+                    "No menu item found with id " + menuId +
+                            " for restaurant id " + restaurantId
+            );
         }
 
-        menuItemRepository.deleteByRestaurantIdAndId(restaurantId, menuId);
+        menuItemRepository.deleteByRestaurantIdAndId(
+                restaurantId,
+                menuId
+        );
 
-        log.info("Restaurant deleted successfully with Menu Id: {}, for Restaurant Id: {}", menuId, restaurantId);
-
+        log.info(
+                "Menu item deleted successfully with Menu Id: {}, for Restaurant Id: {}",
+                menuId,
+                restaurantId
+        );
     }
 
     private MenuItemResponseDTO mapToResponse(MenuItem menuItem){
 
-        FoodItemDTO foodItemDTO = FoodItemDTO.builder()
-                .id(menuItem.getId())
+        FoodItemRequestDTO foodItemDTO = FoodItemRequestDTO.builder()
                 .name(menuItem.getFoodItemName())
                 .description(menuItem.getFoodItemDescription())
                 .price(menuItem.getFoodItemPrice())
@@ -214,6 +229,7 @@ public class MenuItemServiceImpl implements MenuItemService {
                 .build();
 
         return MenuItemResponseDTO.builder()
+                .foodItemId(menuItem.getId())
                 .restaurantId(menuItem.getRestaurantId())
                 .menuCategory(menuItem.getMenuCategory())
                 .foodItem(foodItemDTO)

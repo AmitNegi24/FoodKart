@@ -68,18 +68,31 @@ public class GlobalExceptionHandler {
         errorResponse.setPath(request.getRequestURI());
 
         Throwable cause = ex.getCause();
-        if (cause instanceof com.fasterxml.jackson.databind.exc.InvalidFormatException ife
-                && ife.getTargetType() != null
-                && ife.getTargetType().isEnum()) {
+        com.fasterxml.jackson.databind.exc.InvalidFormatException invalidFormatException = findInvalidFormatException(cause);
 
-            String validValues = Arrays.toString(ife.getTargetType().getEnumConstants());
-            errorResponse.setMessage("Invalid value '" + ife.getValue() +
+        if (invalidFormatException != null
+                && invalidFormatException.getTargetType() != null
+                && invalidFormatException.getTargetType().isEnum()) {
+
+            String validValues = Arrays.toString(invalidFormatException.getTargetType().getEnumConstants());
+            errorResponse.setMessage("Invalid value '" + invalidFormatException.getValue() +
                     "'. Valid values are: " + validValues);
         } else {
             errorResponse.setMessage("Malformed JSON or invalid request body");
         }
 
         return ResponseEntity.badRequest().body(errorResponse);
+    }
+
+    private com.fasterxml.jackson.databind.exc.InvalidFormatException findInvalidFormatException(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (current instanceof com.fasterxml.jackson.databind.exc.InvalidFormatException) {
+                return (com.fasterxml.jackson.databind.exc.InvalidFormatException) current;
+            }
+            current = current.getCause();
+        }
+        return null;
     }
 
     //MenuItemNotFound exception handler by Amit Negi
