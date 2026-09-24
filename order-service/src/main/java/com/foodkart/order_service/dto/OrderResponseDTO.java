@@ -16,7 +16,7 @@ public class OrderResponseDTO {
 
     private Long id;
 
-    private Long userId;
+    private String userEmailId;
 
     private Long restaurantId;
 

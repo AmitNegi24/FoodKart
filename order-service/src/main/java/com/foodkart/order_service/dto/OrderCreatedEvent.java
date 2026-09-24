@@ -13,7 +13,7 @@ public class OrderCreatedEvent {
 
     private Long orderId;
 
-    private Long userId;
+    private String userEmailId;
 
     private BigDecimal amount;
 }

@@ -9,6 +9,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 @FeignClient(name = "menu-service", url = "${menu.service.url:http://localhost:8083}")
 public interface MenuClient {
 
-    @GetMapping("/menu-items/{id}")
-    MenuItemDTO getMenuItemById(@PathVariable("id") @NotNull(message = "Food ID is required") Long menuItemId);
+    @GetMapping("/menu-items/food-items/{foodItemId}")
+    MenuItemDTO getMenuItemById(@PathVariable("foodItemId") @NotNull(message = "Food ID is required") Long foodItemId);
 }

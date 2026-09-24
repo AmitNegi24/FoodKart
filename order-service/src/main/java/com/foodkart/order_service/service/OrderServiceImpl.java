@@ -6,12 +6,14 @@ import com.foodkart.order_service.entity.Order;
 import com.foodkart.order_service.entity.OrderItem;
 import com.foodkart.order_service.entity.OrderStatus;
 import com.foodkart.order_service.kafka.OrderEventProducer;
+
 import com.foodkart.order_service.repository.OrderRepository;
-import com.foodkart.order_service.security.AuthenticatedUser;
 
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -33,18 +35,20 @@ public class OrderServiceImpl implements OrderService {
         Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication == null || authentication.getPrincipal() == null) {
-            throw new IllegalStateException("User not authenticated");
+        if (authentication == null ||
+                !authentication.isAuthenticated()) {
+
+            throw new IllegalStateException(
+                    "User not authenticated"
+            );
         }
 
-        AuthenticatedUser authenticatedUser =
-                (AuthenticatedUser) authentication.getPrincipal();
-
-        Long userId = authenticatedUser.getUserId();
+        // JWTFilter stores email as the principal
+        String userEmailId = authentication.getName();
 
         // 2. Create Order
         Order order = Order.builder()
-                .userId(userId)
+                .userEmail(userEmailId)
                 .restaurantId(request.getRestaurantId())
                 .status(OrderStatus.PENDING)
                 .totalAmount(BigDecimal.ZERO)
@@ -56,14 +60,22 @@ public class OrderServiceImpl implements OrderService {
         // 3. Process each menu item
         for (var itemRequest : request.getItems()) {
 
+            System.out.println(
+                    "Menu Item ID from request = "
+                            + itemRequest.getMenuItemId()
+            );
             // Get menu item from Menu Service
             MenuItemDTO menuItem =
-                    menuClient.getMenuItemById(itemRequest.getMenuItemId());
+                    menuClient.getMenuItemById(
+                            itemRequest.getMenuItemId()
+                    );
 
             // 4. Check availability
             if (!menuItem.isAvailable()) {
+
                 throw new RuntimeException(
-                        "Menu item is not available: " + menuItem.getName()
+                        "Menu item is not available: "
+                                + menuItem.getName()
                 );
             }
 
@@ -81,7 +93,9 @@ public class OrderServiceImpl implements OrderService {
             BigDecimal subtotal =
                     menuItem.getPrice()
                             .multiply(
-                                    BigDecimal.valueOf(itemRequest.getQuantity())
+                                    BigDecimal.valueOf(
+                                            itemRequest.getQuantity()
+                                    )
                             );
 
             // 7. Create OrderItem
@@ -104,14 +118,16 @@ public class OrderServiceImpl implements OrderService {
         order.setTotalAmount(totalAmount);
 
         // 10. Save Order
-        Order savedOrder = orderRepository.save(order);
+        Order savedOrder =
+                orderRepository.save(order);
 
         // 11. Publish OrderCreated event to Kafka
-        OrderCreatedEvent event = OrderCreatedEvent.builder()
-                .orderId(savedOrder.getId())
-                .userId(savedOrder.getUserId())
-                .amount(savedOrder.getTotalAmount())
-                .build();
+        OrderCreatedEvent event =
+                OrderCreatedEvent.builder()
+                        .orderId(savedOrder.getId())
+                        .userEmailId(savedOrder.getUserEmail())
+                        .amount(savedOrder.getTotalAmount())
+                        .build();
 
         orderEventProducer.publishOrderCreated(event);
 
@@ -119,20 +135,31 @@ public class OrderServiceImpl implements OrderService {
         List<OrderItemResponseDTO> itemResponses =
                 savedOrder.getItems()
                         .stream()
-                        .map(item -> OrderItemResponseDTO.builder()
-                                .menuItemId(item.getMenuItemId())
-                                .itemName(item.getItemName())
-                                .price(item.getPrice())
-                                .quantity(item.getQuantity())
-                                .subtotal(item.getSubtotal())
-                                .build()
+                        .map(item ->
+                                OrderItemResponseDTO.builder()
+                                        .menuItemId(
+                                                item.getMenuItemId()
+                                        )
+                                        .itemName(
+                                                item.getItemName()
+                                        )
+                                        .price(
+                                                item.getPrice()
+                                        )
+                                        .quantity(
+                                                item.getQuantity()
+                                        )
+                                        .subtotal(
+                                                item.getSubtotal()
+                                        )
+                                        .build()
                         )
                         .toList();
 
-        // 12. Return response
+        // 13. Return response
         return OrderResponseDTO.builder()
                 .id(savedOrder.getId())
-                .userId(savedOrder.getUserId())
+                .userEmailId(savedOrder.getUserEmail())
                 .restaurantId(savedOrder.getRestaurantId())
                 .totalAmount(savedOrder.getTotalAmount())
                 .status(savedOrder.getStatus())
