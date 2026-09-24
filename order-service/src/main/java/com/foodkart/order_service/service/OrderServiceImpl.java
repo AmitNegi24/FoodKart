@@ -1,13 +1,11 @@
 package com.foodkart.order_service.service;
 
 import com.foodkart.order_service.client.MenuClient;
-import com.foodkart.order_service.dto.MenuItemDTO;
-import com.foodkart.order_service.dto.OrderItemResponseDTO;
-import com.foodkart.order_service.dto.OrderRequestDTO;
-import com.foodkart.order_service.dto.OrderResponseDTO;
+import com.foodkart.order_service.dto.*;
 import com.foodkart.order_service.entity.Order;
 import com.foodkart.order_service.entity.OrderItem;
 import com.foodkart.order_service.entity.OrderStatus;
+import com.foodkart.order_service.kafka.OrderEventProducer;
 import com.foodkart.order_service.repository.OrderRepository;
 import com.foodkart.order_service.security.AuthenticatedUser;
 
@@ -25,6 +23,7 @@ import java.util.List;
 public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
+    private final OrderEventProducer orderEventProducer;
     private final MenuClient menuClient;
 
     @Override
@@ -106,6 +105,14 @@ public class OrderServiceImpl implements OrderService {
 
         // 10. Save Order
         Order savedOrder = orderRepository.save(order);
+
+        OrderCreatedEvent event = OrderCreatedEvent.builder()
+                .orderId(savedOrder.getId())
+                .userId(savedOrder.getUserId())
+                .amount(savedOrder.getTotalAmount())
+                .build();
+
+        orderEventProducer.publishOrderCreated(event);
 
         // 11. Convert OrderItems to response DTO
         List<OrderItemResponseDTO> itemResponses =

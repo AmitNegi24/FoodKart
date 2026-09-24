@@ -15,6 +15,13 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+    topic:
+      name: ${KAFKA_TOPIC_NAME:order-created}
 jwt:
   secret: ${JWT_SECRET}
 
