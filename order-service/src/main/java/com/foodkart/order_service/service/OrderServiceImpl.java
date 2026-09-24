@@ -106,6 +106,7 @@ public class OrderServiceImpl implements OrderService {
         // 10. Save Order
         Order savedOrder = orderRepository.save(order);
 
+        // 11. Publish OrderCreated event to Kafka
         OrderCreatedEvent event = OrderCreatedEvent.builder()
                 .orderId(savedOrder.getId())
                 .userId(savedOrder.getUserId())
@@ -114,7 +115,7 @@ public class OrderServiceImpl implements OrderService {
 
         orderEventProducer.publishOrderCreated(event);
 
-        // 11. Convert OrderItems to response DTO
+        // 12. Convert OrderItems to response DTO
         List<OrderItemResponseDTO> itemResponses =
                 savedOrder.getItems()
                         .stream()
