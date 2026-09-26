@@ -45,9 +45,11 @@ public class OrderServiceImpl implements OrderService {
 
         // JWTFilter stores email as the principal
         String userEmailId = authentication.getName();
+        String userId = authentication.getName();
 
         // 2. Create Order
         Order order = Order.builder()
+                .userId(userId)
                 .userEmail(userEmailId)
                 .restaurantId(request.getRestaurantId())
                 .status(OrderStatus.PENDING)
@@ -71,11 +73,11 @@ public class OrderServiceImpl implements OrderService {
                     );
 
             // 4. Check availability
-            if (!menuItem.isAvailable()) {
+            if (!menuItem.getFoodItem().getAvailable()) {
 
                 throw new RuntimeException(
                         "Menu item is not available: "
-                                + menuItem.getName()
+                                + menuItem.getFoodItem().getName()
                 );
             }
 
@@ -85,13 +87,13 @@ public class OrderServiceImpl implements OrderService {
 
                 throw new RuntimeException(
                         "Menu item does not belong to this restaurant: "
-                                + menuItem.getName()
+                                + menuItem.getFoodItem().getName()
                 );
             }
 
             // 6. Calculate subtotal
             BigDecimal subtotal =
-                    menuItem.getPrice()
+                    menuItem.getFoodItem().getPrice()
                             .multiply(
                                     BigDecimal.valueOf(
                                             itemRequest.getQuantity()
@@ -101,9 +103,9 @@ public class OrderServiceImpl implements OrderService {
             // 7. Create OrderItem
             OrderItem orderItem = OrderItem.builder()
                     .order(order)
-                    .menuItemId(menuItem.getId())
-                    .itemName(menuItem.getName())
-                    .price(menuItem.getPrice())
+                    .menuItemId(menuItem.getFoodItemId())
+                    .itemName(menuItem.getFoodItem().getName())
+                    .price(menuItem.getFoodItem().getPrice())
                     .quantity(itemRequest.getQuantity())
                     .subtotal(subtotal)
                     .build();

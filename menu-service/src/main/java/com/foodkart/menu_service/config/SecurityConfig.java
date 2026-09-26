@@ -26,9 +26,10 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
 
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/orders/createOrder")
+                        .requestMatchers("/menu-items/create")
                         .authenticated()
-                        .requestMatchers("/actuator/health")
+                        .requestMatchers("/actuator/health",
+                                "/menu-items/food-items/**")
                         .permitAll()
 
                         .anyRequest()

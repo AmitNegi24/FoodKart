@@ -21,6 +21,9 @@ public class Order {
     private Long id;
 
     @Column(nullable = false)
+    private String userId;
+
+    @Column(nullable = false)
     private String userEmail;
 
     @Column(nullable = false)
@@ -49,6 +52,7 @@ public class Order {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
 
         if (status == null) {
             status = OrderStatus.PENDING;
