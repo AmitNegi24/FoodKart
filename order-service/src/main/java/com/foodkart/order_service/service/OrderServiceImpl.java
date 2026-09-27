@@ -1,20 +1,21 @@
 package com.foodkart.order_service.service;
 
+
 import com.foodkart.order_service.client.MenuClient;
 import com.foodkart.order_service.dto.*;
-import com.foodkart.order_service.entity.Order;
-import com.foodkart.order_service.entity.OrderItem;
-import com.foodkart.order_service.entity.OrderStatus;
-import com.foodkart.order_service.kafka.OrderEventProducer;
-
+import com.foodkart.order_service.entity.*;
 import com.foodkart.order_service.repository.OrderRepository;
+import com.foodkart.order_service.repository.OutboxEventRepository;
 
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -25,10 +26,12 @@ import java.util.List;
 public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
-    private final OrderEventProducer orderEventProducer;
+    private final OutboxEventRepository outboxEventRepository;
     private final MenuClient menuClient;
+    private final ObjectMapper objectMapper;
 
     @Override
+    @Transactional
     public OrderResponseDTO createOrder(OrderRequestDTO request) {
 
         // 1. Get logged-in user from JWT
@@ -45,11 +48,10 @@ public class OrderServiceImpl implements OrderService {
 
         // JWTFilter stores email as the principal
         String userEmailId = authentication.getName();
-        String userId = authentication.getName();
 
         // 2. Create Order
         Order order = Order.builder()
-                .userId(userId)
+                .userId(userEmailId)
                 .userEmail(userEmailId)
                 .restaurantId(request.getRestaurantId())
                 .status(OrderStatus.PENDING)
@@ -66,6 +68,7 @@ public class OrderServiceImpl implements OrderService {
                     "Menu Item ID from request = "
                             + itemRequest.getMenuItemId()
             );
+
             // Get menu item from Menu Service
             MenuItemDTO menuItem =
                     menuClient.getMenuItemById(
@@ -123,7 +126,7 @@ public class OrderServiceImpl implements OrderService {
         Order savedOrder =
                 orderRepository.save(order);
 
-        // 11. Publish OrderCreated event to Kafka
+        // 11. Create OrderCreated Event
         OrderCreatedEvent event =
                 OrderCreatedEvent.builder()
                         .orderId(savedOrder.getId())
@@ -131,9 +134,27 @@ public class OrderServiceImpl implements OrderService {
                         .amount(savedOrder.getTotalAmount())
                         .build();
 
-        orderEventProducer.publishOrderCreated(event);
+        // 12. Convert event to JSON
+        String eventPayload;
 
-        // 12. Convert OrderItems to response DTO
+        eventPayload =
+                objectMapper.writeValueAsString(event);
+
+        // 13. Save event in Outbox table
+        OutboxEvent outboxEvent =
+                OutboxEvent.builder()
+                        .aggregateType("ORDER")
+                        .aggregateId(
+                                savedOrder.getId().toString()
+                        )
+                        .eventType("ORDER_CREATED")
+                        .payload(eventPayload)
+                        .status(OutboxStatus.PENDING)
+                        .build();
+
+        outboxEventRepository.save(outboxEvent);
+
+        // 14. Convert OrderItems to response DTO
         List<OrderItemResponseDTO> itemResponses =
                 savedOrder.getItems()
                         .stream()
@@ -158,7 +179,7 @@ public class OrderServiceImpl implements OrderService {
                         )
                         .toList();
 
-        // 13. Return response
+        // 15. Return response
         return OrderResponseDTO.builder()
                 .id(savedOrder.getId())
                 .userEmailId(savedOrder.getUserEmail())
