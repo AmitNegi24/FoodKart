@@ -23,7 +23,7 @@ public class Payment {
     private Long orderId;
 
     @Column(nullable = false)
-    private Long userId;
+    private String userEmailId;
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;

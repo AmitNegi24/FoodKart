@@ -1,22 +1,21 @@
 package com.foodkart.payment_service.dto;
 
-import com.foodkart.payment_service.entity.PaymentStatus;
 import lombok.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PaymentResponseDTO {
+public class PaymentSuccessEvent {
 
-    private Long id;
+    private Long paymentId;
+
     private Long orderId;
+
     private String userEmailId;
+
     private BigDecimal amount;
-    private PaymentStatus status;
-    private LocalDateTime createdAt;
 }

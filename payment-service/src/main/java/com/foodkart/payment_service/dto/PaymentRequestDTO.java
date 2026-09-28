@@ -16,8 +16,8 @@ public class PaymentRequestDTO {
     @NotNull(message = "Order ID is required")
     private Long orderId;
 
-    @NotNull(message = "User ID is required")
-    private Long userId;
+    @NotNull(message = "User emailID is required")
+    private String userEmailId;
 
     @NotNull(message = "Amount is required")
     @DecimalMin(value = "0.01", message = "Amount must be greater than zero")

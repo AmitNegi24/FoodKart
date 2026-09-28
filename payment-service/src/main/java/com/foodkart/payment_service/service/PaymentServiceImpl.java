@@ -19,7 +19,7 @@ public class PaymentServiceImpl implements PaymentService {
 
         Payment payment = Payment.builder()
                 .orderId(request.getOrderId())
-                .userId(request.getUserId())
+                .userEmailId(request.getUserEmailId())
                 .amount(request.getAmount())
                 .status(PaymentStatus.PENDING)
                 .build();
@@ -50,7 +50,7 @@ public class PaymentServiceImpl implements PaymentService {
         return PaymentResponseDTO.builder()
                 .id(payment.getId())
                 .orderId(payment.getOrderId())
-                .userId(payment.getUserId())
+                .userEmailId(payment.getUserEmailId())
                 .amount(payment.getAmount())
                 .status(payment.getStatus())
                 .createdAt(payment.getCreatedAt())
