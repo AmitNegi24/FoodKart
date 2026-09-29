@@ -2,8 +2,10 @@ package com.foodkart.payment_service.service;
 
 import com.foodkart.payment_service.dto.PaymentRequestDTO;
 import com.foodkart.payment_service.dto.PaymentResponseDTO;
+import com.foodkart.payment_service.dto.PaymentSuccessEvent;
 import com.foodkart.payment_service.entity.Payment;
 import com.foodkart.payment_service.entity.PaymentStatus;
+import com.foodkart.payment_service.kafka.PaymentEventProducer;
 import com.foodkart.payment_service.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Service;
 public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRepository paymentRepository;
+    private final PaymentEventProducer paymentEventProducer;
 
     @Override
     public PaymentResponseDTO processPayment(PaymentRequestDTO request) {
@@ -31,6 +34,15 @@ public class PaymentServiceImpl implements PaymentService {
         savedPayment.setStatus(PaymentStatus.SUCCESS);
 
         savedPayment = paymentRepository.save(savedPayment);
+
+        PaymentSuccessEvent event = PaymentSuccessEvent.builder()
+                .paymentId(savedPayment.getId())
+                .orderId(savedPayment.getOrderId())
+                .userEmailId(savedPayment.getUserEmailId())
+                .amount(savedPayment.getAmount())
+                .build();
+
+        paymentEventProducer.publishPaymentSuccess(event);
 
         return mapToResponse(savedPayment);
     }
