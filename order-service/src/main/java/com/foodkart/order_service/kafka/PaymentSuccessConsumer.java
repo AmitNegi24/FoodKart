@@ -60,8 +60,10 @@ public class PaymentSuccessConsumer {
             System.err.println(
                     "Failed to process PAYMENT_SUCCESS event"
             );
-
-            e.printStackTrace();
+            throw new RuntimeException(
+                    "Failed to process PAYMENT_SUCCESS",
+                    e
+            );
         }
     }
 }

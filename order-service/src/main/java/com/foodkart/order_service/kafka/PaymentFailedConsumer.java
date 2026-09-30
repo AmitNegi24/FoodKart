@@ -65,7 +65,10 @@ public class PaymentFailedConsumer {
                     "Failed to process PAYMENT_FAILED event"
             );
 
-            e.printStackTrace();
+            throw new RuntimeException(
+                    "Failed to process PAYMENT_FAILED event",
+                    e
+            );
         }
     }
 }
