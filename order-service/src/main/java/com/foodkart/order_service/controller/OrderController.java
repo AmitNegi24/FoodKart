@@ -29,4 +29,8 @@ public class OrderController {
                 .status(HttpStatus.CREATED)
                 .body(savedOrder);
     }
+    @GetMapping("/getOrder/{id}")
+    public ResponseEntity<OrderResponseDTO> getOrderById(@PathVariable Long id) {
+        return ResponseEntity.ok(orderService.getOrderById(id));
+    }
 }

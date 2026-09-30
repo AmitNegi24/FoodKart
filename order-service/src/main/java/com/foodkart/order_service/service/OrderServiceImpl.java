@@ -4,6 +4,7 @@ package com.foodkart.order_service.service;
 import com.foodkart.order_service.client.MenuClient;
 import com.foodkart.order_service.dto.*;
 import com.foodkart.order_service.entity.*;
+import com.foodkart.order_service.exception.OrderNotFoundException;
 import com.foodkart.order_service.repository.OrderRepository;
 import com.foodkart.order_service.repository.OutboxEventRepository;
 
@@ -20,6 +21,7 @@ import tools.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -188,6 +190,35 @@ public class OrderServiceImpl implements OrderService {
                 .status(savedOrder.getStatus())
                 .createdAt(savedOrder.getCreatedAt())
                 .items(itemResponses)
+                .build();
+    }
+
+    @Override
+    public OrderResponseDTO getOrderById(Long id) {
+        Optional<Order> order = orderRepository.findById(id);
+        if (order.isEmpty()) {
+            throw new OrderNotFoundException("Order not found");
+        }
+
+        List<OrderItemResponseDTO> orderItems = order.get().getItems().stream()
+                .map(item -> OrderItemResponseDTO.builder()
+                        .menuItemId(item.getMenuItemId())
+                        .itemName(item.getItemName())
+                        .quantity(item.getQuantity())
+                        .price(item.getPrice())
+                        .subtotal(item.getSubtotal())
+                        .build())
+                .toList();
+
+
+        return OrderResponseDTO.builder()
+                .id(order.get().getId())
+                .userEmailId(order.get().getUserEmail())
+                .restaurantId(order.get().getRestaurantId())
+                .totalAmount(order.get().getTotalAmount())
+                .status(order.get().getStatus())
+                .createdAt(order.get().getCreatedAt())
+                .items(orderItems)
                 .build();
     }
 }
