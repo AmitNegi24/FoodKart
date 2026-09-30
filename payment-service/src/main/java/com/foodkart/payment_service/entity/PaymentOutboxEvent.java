@@ -1,9 +1,8 @@
 package com.foodkart.payment_service.entity;
 
-import com.foodkart.payment_service.entity.OutboxStatus;
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.data.annotation.Id;
+
 
 import java.time.LocalDateTime;
 
