@@ -12,36 +12,50 @@ spring:
               uri: http://localhost:8081
               predicates:
                 - Path=/restaurants/**
+              filters:
+                - AddCorrelationId
 
             - id: menu-service
               uri: http://localhost:8082
               predicates:
                 - Path=/menu-items/**
+              filters:
+                - AddCorrelationId
 
             - id: auth-service
               uri: http://localhost:8083
               predicates:
                 - Path=/auth/**
+              filters:
+                - AddCorrelationId
 
             - id: order-service
               uri: http://localhost:8084
               predicates:
                 - Path=/orders/**
+              filters:
+                - AddCorrelationId
 
             - id: payment-service
               uri: http://localhost:8085
               predicates:
                 - Path=/payments/**
+              filters:
+                - AddCorrelationId
 
             - id: delivery-service
               uri: http://localhost:8086
               predicates:
                 - Path=/deliveries/**
+              filters:
+                - AddCorrelationId
 
             - id: notification-service
               uri: http://localhost:8087
               predicates:
                 - Path=/notifications/**
+              filters:
+                - AddCorrelationId
 
 server:
   port: 8080
