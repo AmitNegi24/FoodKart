@@ -4,12 +4,16 @@ import com.foodkart.payment_service.dto.PaymentFailedEvent;
 import com.foodkart.payment_service.dto.PaymentRequestDTO;
 import com.foodkart.payment_service.dto.PaymentResponseDTO;
 import com.foodkart.payment_service.dto.PaymentSuccessEvent;
+import com.foodkart.payment_service.entity.OutboxStatus;
 import com.foodkart.payment_service.entity.Payment;
+import com.foodkart.payment_service.entity.PaymentOutboxEvent;
 import com.foodkart.payment_service.entity.PaymentStatus;
-import com.foodkart.payment_service.kafka.PaymentEventProducer;
+import com.foodkart.payment_service.repository.PaymentOutboxEventRepository;
 import com.foodkart.payment_service.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 
@@ -18,14 +22,14 @@ import java.math.BigDecimal;
 public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRepository paymentRepository;
-    private final PaymentEventProducer paymentEventProducer;
+    private final PaymentOutboxEventRepository paymentOutboxEventRepository;
+    private final ObjectMapper objectMapper;
 
     @Override
+    @Transactional
     public PaymentResponseDTO processPayment(PaymentRequestDTO request) {
 
-
-        // Check if payment already exists for the order and gives idempotency also we added unique constraint on orderId in database level
-        //start
+        // Idempotency check
         Payment existingPayment =
                 paymentRepository.findByOrderId(request.getOrderId())
                         .orElse(null);
@@ -39,7 +43,7 @@ public class PaymentServiceImpl implements PaymentService {
 
             return mapToResponse(existingPayment);
         }
-        //end
+
         Payment payment = Payment.builder()
                 .orderId(request.getOrderId())
                 .userEmailId(request.getUserEmailId())
@@ -49,8 +53,7 @@ public class PaymentServiceImpl implements PaymentService {
 
         Payment savedPayment = paymentRepository.save(payment);
 
-        // Temporary simulation.
-        // Later this will call Razorpay/Stripe/payment gateway.
+        // Payment failure simulation
         if (request.getAmount().compareTo(new BigDecimal("5000")) > 0) {
 
             savedPayment.setStatus(PaymentStatus.FAILED);
@@ -64,24 +67,63 @@ public class PaymentServiceImpl implements PaymentService {
                             .reason("Payment amount exceeds limit")
                             .build();
 
-            paymentEventProducer.publishPaymentFailed(event);
+            saveOutboxEvent(
+                    savedPayment.getOrderId(),
+                    "PAYMENT_FAILED",
+                    event
+            );
 
             return mapToResponse(savedPayment);
         }
+
+        // Payment success
         savedPayment.setStatus(PaymentStatus.SUCCESS);
 
         savedPayment = paymentRepository.save(savedPayment);
 
-        PaymentSuccessEvent event = PaymentSuccessEvent.builder()
-                .paymentId(savedPayment.getId())
-                .orderId(savedPayment.getOrderId())
-                .userEmailId(savedPayment.getUserEmailId())
-                .amount(savedPayment.getAmount())
-                .build();
+        PaymentSuccessEvent event =
+                PaymentSuccessEvent.builder()
+                        .paymentId(savedPayment.getId())
+                        .orderId(savedPayment.getOrderId())
+                        .userEmailId(savedPayment.getUserEmailId())
+                        .amount(savedPayment.getAmount())
+                        .build();
 
-        paymentEventProducer.publishPaymentSuccess(event);
+        saveOutboxEvent(
+                savedPayment.getOrderId(),
+                "PAYMENT_SUCCESS",
+                event
+        );
 
         return mapToResponse(savedPayment);
+    }
+
+    private void saveOutboxEvent(
+            Long orderId,
+            String eventType,
+            Object event
+    ) {
+        try {
+
+            String payload =
+                    objectMapper.writeValueAsString(event);
+
+            PaymentOutboxEvent outboxEvent =
+                    PaymentOutboxEvent.builder()
+                            .aggregateId(orderId)
+                            .eventType(eventType)
+                            .payload(payload)
+                            .status(OutboxStatus.PENDING)
+                            .build();
+
+            paymentOutboxEventRepository.save(outboxEvent);
+
+        } catch (Exception e) {
+            throw new RuntimeException(
+                    "Failed to create payment outbox event",
+                    e
+            );
+        }
     }
 
     @Override
@@ -89,7 +131,10 @@ public class PaymentServiceImpl implements PaymentService {
 
         Payment payment = paymentRepository.findByOrderId(orderId)
                 .orElseThrow(() ->
-                        new RuntimeException("Payment not found for order: " + orderId));
+                        new RuntimeException(
+                                "Payment not found for order: " + orderId
+                        )
+                );
 
         return mapToResponse(payment);
     }

@@ -1,35 +1,28 @@
 package com.foodkart.payment_service.kafka;
 
-import com.foodkart.payment_service.dto.PaymentFailedEvent;
-import com.foodkart.payment_service.dto.PaymentSuccessEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
-import tools.jackson.databind.ObjectMapper;
 
 @Component
 @RequiredArgsConstructor
 public class PaymentEventProducer {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
-    private final ObjectMapper objectMapper;
 
-    public void publishPaymentSuccess(PaymentSuccessEvent event) {
+    public void publishPaymentSuccess(String payload, String orderId) {
 
         try {
 
-            String message =
-                    objectMapper.writeValueAsString(event);
-
             kafkaTemplate.send(
                     "payment-success",
-                    event.getOrderId().toString(),
-                    message
-            );
+                    orderId,
+                    payload
+            ).get();
 
             System.out.println(
                     "PAYMENT_SUCCESS event published for order: "
-                            + event.getOrderId()
+                            + orderId
             );
 
         } catch (Exception e) {
@@ -38,25 +31,26 @@ public class PaymentEventProducer {
                     "Failed to publish PAYMENT_SUCCESS event"
             );
 
-            e.printStackTrace();
+            throw new RuntimeException(
+                    "Failed to publish PAYMENT_SUCCESS event",
+                    e
+            );
         }
     }
-    public void publishPaymentFailed(PaymentFailedEvent event) {
+
+    public void publishPaymentFailed(String payload, String orderId) {
 
         try {
 
-            String message =
-                    objectMapper.writeValueAsString(event);
-
             kafkaTemplate.send(
                     "payment-failed",
-                    event.getOrderId().toString(),
-                    message
-            );
+                    orderId,
+                    payload
+            ).get();
 
             System.out.println(
                     "PAYMENT_FAILED event published for order: "
-                            + event.getOrderId()
+                            + orderId
             );
 
         } catch (Exception e) {
@@ -65,7 +59,11 @@ public class PaymentEventProducer {
                     "Failed to publish PAYMENT_FAILED event"
             );
 
-            e.printStackTrace();
+            throw new RuntimeException(
+                    "Failed to publish PAYMENT_FAILED event",
+                    e
+            );
         }
     }
 }
+
