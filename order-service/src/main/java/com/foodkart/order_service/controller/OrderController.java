@@ -19,18 +19,35 @@ public class OrderController {
 
     @PostMapping("/createOrder")
     public ResponseEntity<OrderResponseDTO> createOrder(
-            @RequestBody OrderRequestDTO orderRequestDTO) {
+            @RequestBody OrderRequestDTO orderRequestDTO,
+            @RequestHeader(
+                    value = "X-Correlation-ID",
+                    required = false
+            ) String correlationId) {
 
-        log.info("Creating order: {}", orderRequestDTO);
+        log.info(
+                "Creating order: {}, correlationId: {}",
+                orderRequestDTO,
+                correlationId
+        );
 
-        OrderResponseDTO savedOrder = orderService.createOrder(orderRequestDTO);
+        OrderResponseDTO savedOrder =
+                orderService.createOrder(
+                        orderRequestDTO,
+                        correlationId
+                );
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(savedOrder);
     }
+
     @GetMapping("/getOrder/{id}")
-    public ResponseEntity<OrderResponseDTO> getOrderById(@PathVariable Long id) {
-        return ResponseEntity.ok(orderService.getOrderById(id));
+    public ResponseEntity<OrderResponseDTO> getOrderById(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                orderService.getOrderById(id)
+        );
     }
 }

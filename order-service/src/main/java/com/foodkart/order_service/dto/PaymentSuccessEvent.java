@@ -18,4 +18,6 @@ public class PaymentSuccessEvent {
     private String userEmailId;
 
     private BigDecimal amount;
+
+    private String correlationId;
 }

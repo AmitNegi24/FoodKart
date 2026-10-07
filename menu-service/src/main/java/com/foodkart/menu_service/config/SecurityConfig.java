@@ -26,7 +26,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
 
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/menu-items/create")
+                        .requestMatchers("/menu-items/create",
+                                "/menu-items/update",
+                                "/menu-items/delete")
                         .authenticated()
                         .requestMatchers("/actuator/health",
                                 "/menu-items/food-items/**")

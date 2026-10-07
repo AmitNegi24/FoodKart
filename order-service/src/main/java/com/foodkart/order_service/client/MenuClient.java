@@ -8,7 +8,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 @FeignClient(
         name = "menu-service",
         url = "${menu.service.url:http://localhost:8082}",
-        configuration = FeignClientConfig.class
+        configuration = FeignClientConfig.class,
+        fallback = MenuClientFallBack.class
 )
 public interface MenuClient {
 

@@ -14,4 +14,6 @@ public class PaymentFailedEvent {
     private String userEmailId;
 
     private String reason;
+
+    private String correlationId;
 }

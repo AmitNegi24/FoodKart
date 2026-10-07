@@ -65,6 +65,7 @@ public class PaymentServiceImpl implements PaymentService {
                             .orderId(savedPayment.getOrderId())
                             .userEmailId(savedPayment.getUserEmailId())
                             .reason("Payment amount exceeds limit")
+                            .correlationId(request.getCorrelationId())
                             .build();
 
             saveOutboxEvent(
@@ -87,6 +88,7 @@ public class PaymentServiceImpl implements PaymentService {
                         .orderId(savedPayment.getOrderId())
                         .userEmailId(savedPayment.getUserEmailId())
                         .amount(savedPayment.getAmount())
+                        .correlationId(request.getCorrelationId())
                         .build();
 
         saveOutboxEvent(

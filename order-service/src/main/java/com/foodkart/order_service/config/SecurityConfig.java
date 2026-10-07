@@ -27,7 +27,7 @@ public class SecurityConfig {
                         .requestMatchers("/orders/createOrder",
                                 "/orders/getOrderById/{id}")
                         .authenticated()
-                        .requestMatchers("/actuator/health")
+                        .requestMatchers("/actuator/**")
                         .permitAll()
 
                         .anyRequest()

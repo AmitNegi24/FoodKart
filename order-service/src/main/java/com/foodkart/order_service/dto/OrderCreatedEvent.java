@@ -16,4 +16,6 @@ public class OrderCreatedEvent {
     private String userEmailId;
 
     private BigDecimal amount;
+
+    private String correlationId;
 }

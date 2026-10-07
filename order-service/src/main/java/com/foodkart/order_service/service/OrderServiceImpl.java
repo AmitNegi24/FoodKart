@@ -34,7 +34,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public OrderResponseDTO createOrder(OrderRequestDTO request) {
+    public OrderResponseDTO createOrder(OrderRequestDTO request, String correlationId) {
 
         // 1. Get logged-in user from JWT
         Authentication authentication =
@@ -134,6 +134,7 @@ public class OrderServiceImpl implements OrderService {
                         .orderId(savedOrder.getId())
                         .userEmailId(savedOrder.getUserEmail())
                         .amount(savedOrder.getTotalAmount())
+                        .correlationId(correlationId)
                         .build();
 
         // 12. Convert event to JSON

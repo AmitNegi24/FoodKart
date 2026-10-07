@@ -16,21 +16,33 @@ public class CorrelationIdFilter {
             String correlationId =
                     request.headers().firstHeader("X-Correlation-ID");
 
+            // If client did not send one, generate it
             if (correlationId == null || correlationId.isBlank()) {
                 correlationId = UUID.randomUUID().toString();
             }
 
-            ServerRequest modifiedRequest =
-                    ServerRequest.from(request)
-                            .header("X-Correlation-ID", correlationId)
-                            .build();
+            final String finalCorrelationId = correlationId;
+
+            // Only add the header if it was missing
+            ServerRequest modifiedRequest = request;
+
+            if (request.headers().firstHeader("X-Correlation-ID") == null) {
+
+                modifiedRequest =
+                        ServerRequest.from(request)
+                                .header(
+                                        "X-Correlation-ID",
+                                        finalCorrelationId
+                                )
+                                .build();
+            }
 
             ServerResponse response =
                     next.handle(modifiedRequest);
 
-            response.headers().add(
+            response.headers().set(
                     "X-Correlation-ID",
-                    correlationId
+                    finalCorrelationId
             );
 
             return response;

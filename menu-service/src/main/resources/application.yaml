@@ -1,6 +1,12 @@
 spring:
   application:
     name: menu-service
+  cache:
+    type: redis
+  data:
+    redis:
+      host: localhost
+      port: 6379
 
   datasource:
     url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME}

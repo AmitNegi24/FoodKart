@@ -9,6 +9,8 @@ import com.foodkart.menu_service.model.MenuCategory;
 import com.foodkart.menu_service.repository.MenuItemRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
@@ -61,8 +63,9 @@ public class MenuItemServiceImpl implements MenuItemService {
     }
 
     @Override
+    @Cacheable(value = "menuItems", key = "#foodItemId")
     public MenuItemResponseDTO getMenuItemByFoodItemId(Long foodItemId) {
-
+        log.info("CACHE MISS: loading menu item {} from DATABASE", foodItemId);
         MenuItem menuItem = menuItemRepository.findById(foodItemId)
                 .orElseThrow(() ->
                         new MenuItemNotFoundException("Menu item not found with id: " + foodItemId)
@@ -161,7 +164,14 @@ public class MenuItemServiceImpl implements MenuItemService {
     }
 
     @Override
+    @Transactional
+    @CacheEvict(value = "menuItems", key = "#foodItemId")
     public MenuItemResponseDTO updateMenuItem(Long restaurantId, Long foodItemId, MenuItemRequestDTO request){
+        log.info(
+                "CACHE EVICT: updating menu item {}, new price {}",
+                foodItemId,
+                request.getFoodItem().getPrice()
+        );
 
         if((restaurantId==0 || foodItemId == 0)||(restaurantId==-1 || foodItemId == -1)){
             throw new RuntimeException("RestaurantId or MenuId not Found");
@@ -184,6 +194,7 @@ public class MenuItemServiceImpl implements MenuItemService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "menuItems", key = "#menuId")
     public void deleteMenuItem(Long restaurantId, Long menuId) {
 
         log.info(
