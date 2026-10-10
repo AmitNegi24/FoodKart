@@ -1,57 +1,67 @@
-spring:
-  application:
-    name: order-service
+  spring:
+    application:
+      name: order-service
 
-  datasource:
-    url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
-    driver-class-name: org.postgresql.Driver
+    datasource:
+      url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME}
+      username: ${DB_USERNAME}
+      password: ${DB_PASSWORD}
+      driver-class-name: org.postgresql.Driver
 
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
+    jpa:
       hibernate:
-        format_sql: true
+        ddl-auto: update
+      show-sql: true
+      properties:
+        hibernate:
+          format_sql: true
 
-  kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
-    topic:
-      name: ${KAFKA_TOPIC_NAME:order-created}
+    kafka:
+      bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+      producer:
+        key-serializer: org.apache.kafka.common.serialization.StringSerializer
+        value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+      topic:
+        name: ${KAFKA_TOPIC_NAME:order-created}
 
-  cloud:
-    openfeign:
-      circuitbreaker:
-        enabled: true
+    cloud:
+      openfeign:
+        circuitbreaker:
+          enabled: true
+        client:
+          config:
+            menu-service:
+              logger-level: full
 
-jwt:
-  secret: ${JWT_SECRET}
+  jwt:
+    secret: ${JWT_SECRET}
 
-server:
-  port: 8084
+  server:
+    port: 8084
 
-resilience4j:
-  circuitbreaker:
-    instances:
-      menuService:
-        slidingWindowType: COUNT_BASED
-        slidingWindowSize: 5
-        minimumNumberOfCalls: 5
-        failureRateThreshold: 50
-        waitDurationInOpenState: 10s
-        permittedNumberOfCallsInHalfOpenState: 2
+  resilience4j:
+    circuitbreaker:
+      instances:
+        menuService:
+          slidingWindowType: COUNT_BASED
+          slidingWindowSize: 5
+          minimumNumberOfCalls: 5
+          failureRateThreshold: 50
+          waitDurationInOpenState: 10s
+          permittedNumberOfCallsInHalfOpenState: 2
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics
+  logging:
+    level:
+      com.foodkart.order_service.client.MenuClient: DEBUG
+      org.springframework.cloud.openfeign: DEBUG
+      io.github.resilience4j.circuitbreaker: DEBUG
 
-  endpoint:
-    health:
-      show-details: always
+  management:
+    endpoints:
+      web:
+        exposure:
+          include: health,info,metrics
+
+    endpoint:
+      health:
+        show-details: always
