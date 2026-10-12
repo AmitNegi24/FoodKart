@@ -5,12 +5,15 @@ import com.foodkart.order_service.entity.Order;
 import com.foodkart.order_service.entity.OrderStatus;
 import com.foodkart.order_service.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class PaymentSuccessConsumer {
 
     private final ObjectMapper objectMapper;
@@ -20,6 +23,7 @@ public class PaymentSuccessConsumer {
             topics = "payment-success",
             groupId = "order-payment-group"
     )
+    @Transactional
     public void consumePaymentSuccess(String message) {
 
         try {
@@ -42,23 +46,41 @@ public class PaymentSuccessConsumer {
                                             + event.getOrderId()
                             )
                     );
+            // Duplicate event: the order is already confirmed.
+            if (order.getStatus() == OrderStatus.CONFIRMED) {
+                log.info(
+                        "Order {} is already confirmed. Ignoring duplicate payment event.",
+                        order.getId()
+                );
+                return;
+            }
+            // Never confirm an order that is not awaiting payment.
+            if (order.getStatus() != OrderStatus.PENDING) {
+                log.warn(
+                        "Ignoring payment-success event for order {} with status {}",
+                        order.getId(),
+                        order.getStatus()
+                );
+                return;
+            }
 
             order.setStatus(OrderStatus.CONFIRMED);
 
             orderRepository.save(order);
 
-            System.out.println(
-                    "Order "
-                            + order.getId()
-                            + " confirmed successfully."
+            log.info(
+                    "Order {} confirmed successfully after payment success.",
+                    order.getId()
             );
 
             System.out.println("=================================");
 
         } catch (Exception e) {
 
-            System.err.println(
-                    "Failed to process PAYMENT_SUCCESS event"
+            log.error(
+                    "Failed to process PAYMENT_SUCCESS event. Message: {}",
+                    message,
+                    e
             );
             throw new RuntimeException(
                     "Failed to process PAYMENT_SUCCESS",

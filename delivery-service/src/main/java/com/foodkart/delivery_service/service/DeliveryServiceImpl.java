@@ -23,13 +23,16 @@ public class DeliveryServiceImpl implements DeliveryService {
     @Transactional
     public DeliveryResponseDTO createDelivery(Long orderId) {
 
+        // Insert a delivery only if this order does not already have one.
+        deliveryRepository.insertIfAbsent(orderId);
+
+        // Fetch the delivery, whether it was newly inserted or already existed.
         Delivery delivery = deliveryRepository.findByOrderId(orderId)
-                .orElseGet(() -> deliveryRepository.save(
-                        Delivery.builder()
-                                .orderId(orderId)
-                                .status(DeliveryStatus.ASSIGNED)
-                                .build()
-                ));
+                .orElseThrow(() ->
+                        new IllegalStateException(
+                                "Delivery could not be created for orderId: " + orderId
+                        )
+                );
 
         return mapToResponse(delivery);
     }

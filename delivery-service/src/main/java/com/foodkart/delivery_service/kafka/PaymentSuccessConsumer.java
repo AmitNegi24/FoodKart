@@ -14,39 +14,43 @@ import tools.jackson.databind.ObjectMapper;
 @Slf4j
 public class PaymentSuccessConsumer {
 
-    private final DeliveryService deliveryService;
     private final ObjectMapper objectMapper;
+    private final DeliveryService deliveryService;
 
     @KafkaListener(
             topics = "payment-success",
             groupId = "delivery-service-group"
     )
-    public void consumePaymentSuccess(String payload) {
+    public void consumePaymentSuccess(String message) {
 
         try {
             PaymentSuccessEvent event =
                     objectMapper.readValue(
-                            payload,
+                            message,
                             PaymentSuccessEvent.class
                     );
 
             log.info(
-                    "Received PAYMENT_SUCCESS for orderId={}, correlationId={}",
-                    event.getOrderId(),
-                    event.getCorrelationId()
+                    "Received payment-success event for order {}",
+                    event.getOrderId()
             );
 
             deliveryService.createDelivery(event.getOrderId());
 
             log.info(
-                    "Delivery created for orderId={}",
+                    "Delivery created or already exists for order {}",
                     event.getOrderId()
             );
 
         } catch (Exception e) {
-            log.error("Failed to process PAYMENT_SUCCESS event", e);
+            log.error(
+                    "Failed to process payment-success event: {}",
+                    message,
+                    e
+            );
+
             throw new RuntimeException(
-                    "Failed to process payment success event",
+                    "Failed to process payment-success event",
                     e
             );
         }
