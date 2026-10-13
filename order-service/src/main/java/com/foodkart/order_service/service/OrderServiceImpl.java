@@ -222,4 +222,58 @@ public class OrderServiceImpl implements OrderService {
                 .items(orderItems)
                 .build();
     }
+
+
+    @Override
+    @Transactional
+    public OrderResponseDTO updateOrderStatus(
+            Long orderId,
+            OrderStatus newStatus
+    ) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() ->
+                        new OrderNotFoundException("Order not found: " + orderId)
+                );
+
+        OrderStatus currentStatus = order.getStatus();
+
+        // Allow only the restaurant preparation transitions for now.
+
+        boolean validTransition = switch (currentStatus) {
+            case PENDING ->
+                    newStatus == OrderStatus.CONFIRMED
+                            || newStatus == OrderStatus.CANCELLED;
+
+            case CONFIRMED ->
+                    newStatus == OrderStatus.PREPARING
+                            || newStatus == OrderStatus.CANCELLED;
+
+            case PREPARING ->
+                    newStatus == OrderStatus.READY_FOR_PICKUP
+                            || newStatus == OrderStatus.CANCELLED;
+
+            case READY_FOR_PICKUP ->
+                    newStatus == OrderStatus.OUT_FOR_DELIVERY
+                            || newStatus == OrderStatus.CANCELLED;
+
+            case OUT_FOR_DELIVERY ->
+                    newStatus == OrderStatus.DELIVERED;
+
+            case DELIVERED, CANCELLED -> false;
+        };
+
+
+        if (!validTransition) {
+            throw new IllegalStateException(
+                    "Invalid order status transition: "
+                            + currentStatus + " -> " + newStatus
+            );
+        }
+
+        order.setStatus(newStatus);
+        orderRepository.save(order);
+
+        return getOrderById(orderId);
+    }
+
 }

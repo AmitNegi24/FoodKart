@@ -2,6 +2,7 @@ package com.foodkart.order_service.controller;
 
 import com.foodkart.order_service.dto.OrderRequestDTO;
 import com.foodkart.order_service.dto.OrderResponseDTO;
+import com.foodkart.order_service.entity.OrderStatus;
 import com.foodkart.order_service.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,4 +51,32 @@ public class OrderController {
                 orderService.getOrderById(id)
         );
     }
+
+
+    @PatchMapping("/{id}/start-preparing")
+    public ResponseEntity<OrderResponseDTO> startPreparing(
+            @PathVariable Long id) {
+
+        OrderResponseDTO response =
+                orderService.updateOrderStatus(
+                        id,
+                        OrderStatus.PREPARING
+                );
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{id}/ready-for-pickup")
+    public ResponseEntity<OrderResponseDTO> markReadyForPickup(
+            @PathVariable Long id) {
+
+        OrderResponseDTO response =
+                orderService.updateOrderStatus(
+                        id,
+                        OrderStatus.READY_FOR_PICKUP
+                );
+
+        return ResponseEntity.ok(response);
+    }
+
 }
