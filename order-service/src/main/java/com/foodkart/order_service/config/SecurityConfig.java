@@ -25,7 +25,9 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/orders/createOrder",
-                                "/orders/getOrderById/{id}")
+                                "/orders/getOrderById/{id}",
+                                "/orders/{id}/start-preparing",
+                                "/orders/{id}/ready-for-pickup")
                         .authenticated()
                         .requestMatchers("/actuator/**")
                         .permitAll()

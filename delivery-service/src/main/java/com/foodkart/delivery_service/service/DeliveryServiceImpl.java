@@ -5,6 +5,7 @@ import com.foodkart.delivery_service.dto.DeliveryResponseDTO;
 import com.foodkart.delivery_service.entity.Delivery;
 import com.foodkart.delivery_service.entity.DeliveryPartner;
 import com.foodkart.delivery_service.entity.DeliveryStatus;
+import com.foodkart.delivery_service.kafka.DeliveryStatusEventProducer;
 import com.foodkart.delivery_service.repository.DeliveryPartnerRepository;
 import com.foodkart.delivery_service.repository.DeliveryRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ public class DeliveryServiceImpl implements DeliveryService {
 
     private final DeliveryRepository deliveryRepository;
     private final DeliveryPartnerRepository deliveryPartnerRepository;
+    private final DeliveryStatusEventProducer deliveryStatusEventProducer;
 
     // 1. Create a delivery if one does not already exist
     @Override
@@ -114,6 +116,11 @@ public class DeliveryServiceImpl implements DeliveryService {
         delivery.setStatus(newStatus);
 
         Delivery updatedDelivery = deliveryRepository.save(delivery);
+
+        deliveryStatusEventProducer.publishStatusUpdate(
+                orderId,
+                newStatus.name()
+        );
 
         return mapToResponse(updatedDelivery);
     }

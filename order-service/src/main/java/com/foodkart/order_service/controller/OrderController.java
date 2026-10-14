@@ -56,7 +56,7 @@ public class OrderController {
     @PatchMapping("/{id}/start-preparing")
     public ResponseEntity<OrderResponseDTO> startPreparing(
             @PathVariable Long id) {
-
+        log.info("Starting preparing for order: {}", id);
         OrderResponseDTO response =
                 orderService.updateOrderStatus(
                         id,
