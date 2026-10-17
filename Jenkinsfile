@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -40,15 +41,28 @@ pipeline {
                 }
             }
         }
+
+        stage('Test Restaurant Service') {
+            steps {
+                dir('restaurant-service') {
+                    sh 'mvn -B test'
+                }
+            }
+        }
     }
 
     post {
+        always {
+            junit allowEmptyResults: true,
+                  testResults: '**/target/surefire-reports/*.xml'
+        }
+
         success {
-            echo 'FoodKart Maven build completed successfully!'
+            echo 'FoodKart CI pipeline completed successfully!'
         }
 
         failure {
-            echo 'FoodKart Maven build failed. Check the console output.'
+            echo 'FoodKart CI pipeline failed. Check the console output.'
         }
     }
 }
