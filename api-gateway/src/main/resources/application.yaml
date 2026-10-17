@@ -9,49 +9,49 @@ spring:
           routes:
 
             - id: restaurant-service
-              uri: http://localhost:8081
+              uri: ${RESTAURANT_SERVICE_URL:http://localhost:8081}
               predicates:
                 - Path=/restaurants/**
               filters:
                 - AddCorrelationId
 
             - id: menu-service
-              uri: http://localhost:8082
+              uri: ${MENU_SERVICE_URL:http://localhost:8082}
               predicates:
                 - Path=/menu-items/**
               filters:
                 - AddCorrelationId
 
             - id: auth-service
-              uri: http://localhost:8083
+              uri: ${AUTH_SERVICE_URL:http://localhost:8083}
               predicates:
                 - Path=/auth/**
               filters:
                 - AddCorrelationId
 
             - id: order-service
-              uri: http://localhost:8084
+              uri: ${ORDER_SERVICE_URL:http://localhost:8084}
               predicates:
                 - Path=/orders/**
               filters:
                 - AddCorrelationId
 
             - id: payment-service
-              uri: http://localhost:8085
+              uri: ${PAYMENT_SERVICE_URL:http://localhost:8085}
               predicates:
                 - Path=/payments/**
               filters:
                 - AddCorrelationId
 
             - id: delivery-service
-              uri: http://localhost:8086
+              uri: ${DELIVERY_SERVICE_URL:http://localhost:8086}
               predicates:
                 - Path=/deliveries/**
               filters:
                 - AddCorrelationId
 
             - id: notification-service
-              uri: http://localhost:8087
+              uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8087}
               predicates:
                 - Path=/notifications/**
               filters:
