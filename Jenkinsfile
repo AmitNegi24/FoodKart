@@ -15,6 +15,7 @@ pipeline {
                 sh 'java -version'
                 sh 'mvn -version'
                 sh 'git --version'
+                sh 'docker version'
             }
         }
 
@@ -42,21 +43,32 @@ pipeline {
             }
         }
 
-        stage('Test Restaurant Service') {
+        stage('Build Docker Images') {
             steps {
-                dir('restaurant-service') {
-                    sh 'mvn -B test'
+                script {
+                    def services = [
+                        'restaurant-service',
+                        'menu-service',
+                        'auth-service',
+                        'order-service',
+                        'payment-service',
+                        'delivery-service',
+                        'api-gateway'
+                    ]
+
+                    for (service in services) {
+                        echo "Building Docker image for ${service}..."
+
+                        dir(service) {
+                            sh "docker build -t foodkart-${service}:latest ."
+                        }
+                    }
                 }
             }
         }
     }
 
     post {
-        always {
-            junit allowEmptyResults: true,
-                  testResults: '**/target/surefire-reports/*.xml'
-        }
-
         success {
             echo 'FoodKart CI pipeline completed successfully!'
         }
