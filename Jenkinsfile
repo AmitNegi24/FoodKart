@@ -2,11 +2,15 @@
 pipeline {
     agent any
 
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+    }
+
     stages {
         stage('Checkout') {
             steps {
                 checkout scm
-                echo 'FoodKart source code checked out successfully!'
             }
         }
 
@@ -14,12 +18,12 @@ pipeline {
             steps {
                 sh 'java -version'
                 sh 'mvn -version'
-                sh 'git --version'
                 sh 'docker version'
+                sh 'docker compose version'
             }
         }
 
-        stage('Build Microservices') {
+        stage('Test Microservices') {
             steps {
                 script {
                     def services = [
@@ -33,10 +37,8 @@ pipeline {
                     ]
 
                     for (service in services) {
-                        echo "Building ${service}..."
-
                         dir(service) {
-                            sh 'mvn -B clean package -DskipTests'
+                            sh 'mvn -B clean verify'
                         }
                     }
                 }
@@ -57,8 +59,6 @@ pipeline {
                     ]
 
                     for (service in services) {
-                        echo "Building Docker image for ${service}..."
-
                         dir(service) {
                             sh "docker build -t foodkart-${service}:latest ."
                         }
@@ -70,11 +70,10 @@ pipeline {
 
     post {
         success {
-            echo 'FoodKart CI pipeline completed successfully!'
+            echo 'FoodKart CI completed successfully.'
         }
-
         failure {
-            echo 'FoodKart CI pipeline failed. Check the console output.'
+            echo 'FoodKart CI failed. Check the console output.'
         }
     }
 }
