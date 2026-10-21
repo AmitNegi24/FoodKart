@@ -1,4 +1,4 @@
-﻿name: foodkart
+name: foodkart
 
 x-common: &common
   restart: unless-stopped
@@ -13,7 +13,7 @@ services:
     ports:
       - "8081:8081"
     env_file:
-      - ./restaurant-service/.env
+      - ${RESTAURANT_SERVICE_ENV_FILE:-./restaurant-service/.env}
 
   menu-service:
     <<: *common
@@ -22,7 +22,7 @@ services:
     ports:
       - "8082:8082"
     env_file:
-      - ./menu-service/.env
+      - ${MENU_SERVICE_ENV_FILE:-./menu-service/.env}
     environment:
       SPRING_DATA_REDIS_HOST: foodkart-redis
       RESTAURANT_SERVICE_URL: http://foodkart-restaurant-service:8081
@@ -34,7 +34,7 @@ services:
     ports:
       - "8083:8083"
     env_file:
-      - ./auth-service/.env
+      - ${AUTH_SERVICE_ENV_FILE:-./auth-service/.env}
 
   order-service:
     <<: *common
@@ -43,7 +43,7 @@ services:
     ports:
       - "8084:8084"
     env_file:
-      - ./order-service/.env
+      - ${ORDER_SERVICE_ENV_FILE:-./order-service/.env}
     environment:
       MENU_SERVICE_URL: http://foodkart-menu-service:8082
       KAFKA_BOOTSTRAP_SERVERS: foodkart-kafka:9092
@@ -55,7 +55,7 @@ services:
     ports:
       - "8085:8085"
     env_file:
-      - ./payment-service/.env
+      - ${PAYMENT_SERVICE_ENV_FILE:-./payment-service/.env}
     environment:
       KAFKA_BOOTSTRAP_SERVERS: foodkart-kafka:9092
 
@@ -66,7 +66,7 @@ services:
     ports:
       - "8086:8086"
     env_file:
-      - ./delivery-service/.env
+      - ${DELIVERY_SERVICE_ENV_FILE:-./delivery-service/.env}
     environment:
       KAFKA_BOOTSTRAP_SERVERS: foodkart-kafka:9092
 
