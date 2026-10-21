@@ -1,0 +1,90 @@
+﻿name: foodkart
+
+x-common: &common
+  restart: unless-stopped
+  networks:
+    - foodkart-network
+
+services:
+  restaurant-service:
+    <<: *common
+    image: foodkart-restaurant-service:latest
+    container_name: foodkart-restaurant-service
+    ports:
+      - "8081:8081"
+    env_file:
+      - ./restaurant-service/.env
+
+  menu-service:
+    <<: *common
+    image: foodkart-menu-service:latest
+    container_name: foodkart-menu-service
+    ports:
+      - "8082:8082"
+    env_file:
+      - ./menu-service/.env
+    environment:
+      SPRING_DATA_REDIS_HOST: foodkart-redis
+      RESTAURANT_SERVICE_URL: http://foodkart-restaurant-service:8081
+
+  auth-service:
+    <<: *common
+    image: foodkart-auth-service:latest
+    container_name: foodkart-auth-service
+    ports:
+      - "8083:8083"
+    env_file:
+      - ./auth-service/.env
+
+  order-service:
+    <<: *common
+    image: foodkart-order-service:latest
+    container_name: foodkart-order-service
+    ports:
+      - "8084:8084"
+    env_file:
+      - ./order-service/.env
+    environment:
+      MENU_SERVICE_URL: http://foodkart-menu-service:8082
+      KAFKA_BOOTSTRAP_SERVERS: foodkart-kafka:9092
+
+  payment-service:
+    <<: *common
+    image: foodkart-payment-service:latest
+    container_name: foodkart-payment-service
+    ports:
+      - "8085:8085"
+    env_file:
+      - ./payment-service/.env
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: foodkart-kafka:9092
+
+  delivery-service:
+    <<: *common
+    image: foodkart-delivery-service:latest
+    container_name: foodkart-delivery-service
+    ports:
+      - "8086:8086"
+    env_file:
+      - ./delivery-service/.env
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: foodkart-kafka:9092
+
+  api-gateway:
+    <<: *common
+    image: foodkart-api-gateway:latest
+    container_name: foodkart-api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      RESTAURANT_SERVICE_URL: http://foodkart-restaurant-service:8081
+      MENU_SERVICE_URL: http://foodkart-menu-service:8082
+      AUTH_SERVICE_URL: http://foodkart-auth-service:8083
+      ORDER_SERVICE_URL: http://foodkart-order-service:8084
+      PAYMENT_SERVICE_URL: http://foodkart-payment-service:8085
+      DELIVERY_SERVICE_URL: http://foodkart-delivery-service:8086
+      NOTIFICATION_SERVICE_URL: http://foodkart-notification-service:8087
+
+networks:
+  foodkart-network:
+    external: true

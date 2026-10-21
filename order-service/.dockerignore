@@ -1,0 +1,15 @@
+﻿.git
+.gitignore
+.idea/
+.vscode/
+.env
+.env.*
+*.log
+logs/
+src/
+.mvn/
+mvnw
+mvnw.cmd
+README.md
+Dockerfile
+.dockerignore
