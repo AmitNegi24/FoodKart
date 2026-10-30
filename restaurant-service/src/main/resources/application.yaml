@@ -1,4 +1,8 @@
 spring:
+  data:
+      web:
+        pageable:
+          page-serialization-mode: via-dto
   application:
     name: restaurant-service
 
