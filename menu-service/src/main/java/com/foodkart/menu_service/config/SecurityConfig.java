@@ -31,7 +31,8 @@ public class SecurityConfig {
                                 "/menu-items/delete")
                         .authenticated()
                         .requestMatchers("/actuator/health",
-                                "/menu-items/food-items/**")
+                                "/menu-items/food-items/**",
+                                "/menu-items/restaurants/**")
                         .permitAll()
 
                         .anyRequest()
