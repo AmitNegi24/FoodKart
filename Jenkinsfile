@@ -8,10 +8,12 @@ pipeline {
     }
 
     environment {
-        ENABLE_CD = 'false'
+        ENABLE_CD = 'true'
+        HAS_ROLLBACK = 'false'
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 checkout scm
@@ -25,6 +27,7 @@ pipeline {
                 sh 'docker version'
                 sh 'docker compose version'
                 sh 'curl --version'
+                sh 'bash --version'
             }
         }
 
@@ -42,7 +45,7 @@ pipeline {
                         set +x
                         set -eu
 
-                        for credential_file in \
+                        for file in \
                             "$RESTAURANT_ENV" \
                             "$MENU_ENV" \
                             "$AUTH_ENV" \
@@ -50,13 +53,13 @@ pipeline {
                             "$PAYMENT_ENV" \
                             "$DELIVERY_ENV"
                         do
-                            if [ ! -s "$credential_file" ]; then
-                                echo "ERROR: A Jenkins credential file is missing or empty."
+                            if [ ! -s "$file" ]; then
+                                echo "ERROR: Missing or empty credential file."
                                 exit 1
                             fi
                         done
 
-                        echo "All six Jenkins Secret files are accessible."
+                        echo "All deployment credentials are accessible."
                     '''
                 }
             }
@@ -84,7 +87,7 @@ pipeline {
             }
         }
 
-        stage('Validate Deployment Configuration') {
+        stage('Validate Docker Compose') {
             steps {
                 withCredentials([
                     file(credentialsId: 'foodkart-restaurant-env', variable: 'RESTAURANT_SERVICE_ENV_FILE'),
@@ -99,8 +102,9 @@ pipeline {
                         set -eu
 
                         docker compose -f compose.yaml config --quiet
+                        docker network inspect foodkart-network >/dev/null
 
-                        echo "Docker Compose configuration is valid."
+                        echo "Docker Compose and network validated."
                     '''
                 }
             }
@@ -123,21 +127,21 @@ pipeline {
                         awk 'NR == 1 {print $1}')
 
                     if [ -z "$REMOTE_MASTER" ]; then
-                        echo "ERROR: Could not retrieve remote master commit."
+                        echo "ERROR: Cannot verify remote master."
                         exit 1
                     fi
 
                     if [ "$CURRENT_COMMIT" != "$REMOTE_MASTER" ]; then
-                        echo "ERROR: Checkout does not match current origin/master."
+                        echo "ERROR: Checkout differs from remote master."
                         exit 1
                     fi
 
-                    echo "Deployment authorized for origin/master."
+                    echo "Deployment authorized."
                 '''
             }
         }
 
-        stage('Backup Running Docker Images') {
+        stage('Backup Existing Containers') {
             when {
                 expression {
                     return env.ENABLE_CD == 'true'
@@ -156,50 +160,91 @@ pipeline {
                         'api-gateway'
                     ]
 
-                    sh 'docker network inspect foodkart-network >/dev/null'
-
-                    // Capture the image ID from each running container
-                    // before any new Docker images are built.
-                    for (service in services) {
-                        sh """
+                    def count = sh(
+                        script: '''
                             set -eu
+                            count=0
 
-                            CONTAINER="foodkart-${service}"
-                            IMAGE="foodkart-${service}"
+                            for service in \
+                                restaurant-service \
+                                menu-service \
+                                auth-service \
+                                order-service \
+                                payment-service \
+                                delivery-service \
+                                api-gateway
+                            do
+                                if docker container inspect \
+                                    "foodkart-$service" >/dev/null 2>&1; then
+                                    count=$((count + 1))
+                                fi
+                            done
 
-                            RUNNING=\$(docker inspect \
-                                --format '{{.State.Running}}' \
-                                "\$CONTAINER")
+                            echo "$count"
+                        ''',
+                        returnStdout: true
+                    ).trim()
 
-                            if [ "\$RUNNING" != "true" ]; then
-                                echo "ERROR: \$CONTAINER is not running."
-                                exit 1
-                            fi
+                    if (count == '0') {
+                        env.HAS_ROLLBACK = 'false'
 
-                            IMAGE_ID=\$(docker inspect \
-                                --format '{{.Image}}' \
-                                "\$CONTAINER")
-
-                            docker tag "\$IMAGE_ID" \
-                                "\$IMAGE:rollback-${env.BUILD_NUMBER}"
-
-                            echo "Preserved running image for ${service}."
-                        """
+                        echo 'FIRST DEPLOYMENT DETECTED.'
+                        echo 'No existing microservice containers.'
+                        echo 'Skipping backup stage.'
                     }
+                    else if (count == '7') {
+                        echo 'Existing deployment detected.'
+                        echo 'Verifying running containers...'
 
-                    // Publish the stable rollback tags only after every
-                    // service's versioned backup has been captured.
-                    for (service in services) {
-                        sh """
-                            set -eu
+                        for (service in services) {
+                            withEnv(["SERVICE_NAME=${service}"]) {
+                                sh '''
+                                    set -eu
 
-                            docker tag \
-                                foodkart-${service}:rollback-${env.BUILD_NUMBER} \
-                                foodkart-${service}:rollback
-                        """
+                                    running=$(docker inspect \
+                                        --format '{{.State.Running}}' \
+                                        "foodkart-$SERVICE_NAME")
+
+                                    if [ "$running" != "true" ]; then
+                                        echo "ERROR: Existing container is stopped."
+                                        exit 1
+                                    fi
+                                '''
+                            }
+                        }
+
+                        echo 'Backing up running Docker images...'
+
+                        for (service in services) {
+                            withEnv([
+                                "SERVICE_NAME=${service}",
+                                "IMAGE_TAG=${env.BUILD_NUMBER}"
+                            ]) {
+                                sh '''
+                                    set -eu
+
+                                    image_id=$(docker inspect \
+                                        --format '{{.Image}}' \
+                                        "foodkart-$SERVICE_NAME")
+
+                                    docker tag "$image_id" \
+                                        "foodkart-$SERVICE_NAME:rollback-$IMAGE_TAG"
+
+                                    echo "Backup created for $SERVICE_NAME"
+                                '''
+                            }
+                        }
+
+                        env.HAS_ROLLBACK = 'true'
+
+                        echo 'All seven rollback images preserved.'
                     }
-
-                    echo 'All seven running image backups are ready.'
+                    else {
+                        error(
+                            "Partial deployment detected: ${count}/7 containers exist. " +
+                            "Deployment stopped to prevent inconsistent updates."
+                        )
+                    }
                 }
             }
         }
@@ -219,20 +264,27 @@ pipeline {
 
                     for (service in services) {
                         dir(service) {
-                            sh """
-                                set -eu
+                            withEnv([
+                                "SERVICE_NAME=${service}",
+                                "IMAGE_TAG=${env.BUILD_NUMBER}"
+                            ]) {
+                                sh '''
+                                    set -eu
 
-                                docker build \
-                                    -t foodkart-${service}:${env.BUILD_NUMBER} \
-                                    .
-                            """
+                                    docker build \
+                                        -t "foodkart-$SERVICE_NAME:$IMAGE_TAG" \
+                                        .
+                                '''
+                            }
                         }
                     }
+
+                    echo 'All seven Docker images built successfully.'
                 }
             }
         }
 
-        stage('Deploy and Verify with Rollback') {
+        stage('Deploy and Verify') {
             when {
                 expression {
                     return env.ENABLE_CD == 'true'
@@ -254,54 +306,149 @@ pipeline {
 
                         SERVICES="restaurant-service menu-service auth-service order-service payment-service delivery-service api-gateway"
 
+                        # ---------------------------------------
+                        # HTTP Health Check
+                        # ---------------------------------------
+
                         check_health() {
                             service="$1"
                             url="$2"
                             attempt=1
 
                             while [ "$attempt" -le 12 ]; do
-                                if curl --fail --silent --show-error \
+                                if curl \
+                                    --fail \
+                                    --silent \
+                                    --show-error \
                                     --max-time 5 \
                                     --output /dev/null \
                                     "$url"; then
-                                    echo "$service passed HTTP verification."
+
+                                    echo "$service is healthy."
                                     return 0
                                 fi
 
-                                echo "$service not ready: attempt $attempt/12"
+                                echo "Waiting for $service ($attempt/12)"
                                 sleep 5
                                 attempt=$((attempt + 1))
                             done
 
-                            echo "ERROR: $service failed health verification."
+                            echo "ERROR: $service health check failed."
                             return 1
                         }
 
-                        verify_all() {
-                            check_health restaurant-service http://foodkart-restaurant-service:8081/actuator/health || return 1
-                            check_health menu-service http://foodkart-menu-service:8082/menu-items/food-items/3 || return 1
-                            check_health auth-service http://foodkart-auth-service:8083/actuator/health || return 1
-                            check_health order-service http://foodkart-order-service:8084/actuator/health || return 1
-                            check_health payment-service http://foodkart-payment-service:8085/actuator/health || return 1
-                            check_health delivery-service http://foodkart-delivery-service:8086/actuator/health || return 1
-                            check_health api-gateway http://foodkart-api-gateway:8080/actuator/health || return 1
+                        # ---------------------------------------
+                        # Menu Service TCP Readiness Check
+                        # No Actuator required
+                        # ---------------------------------------
+
+                        check_menu_tcp() {
+                            attempt=1
+
+                            while [ "$attempt" -le 12 ]; do
+                                if bash -c \
+                                    'echo > /dev/tcp/foodkart-menu-service/8082' \
+                                    2>/dev/null; then
+
+                                    echo "Menu Service port 8082 is accepting connections."
+                                    return 0
+                                fi
+
+                                echo "Waiting for Menu Service ($attempt/12)"
+                                sleep 5
+                                attempt=$((attempt + 1))
+                            done
+
+                            echo "ERROR: Menu Service TCP readiness check failed."
+                            return 1
                         }
 
-                        deploy_new_version() {
-                            # Ensure all seven newly built images exist
-                            # before changing any latest tags.
+                        # ---------------------------------------
+                        # Verify All Seven Microservices
+                        # ---------------------------------------
+
+                        verify_all() {
+                            check_health restaurant-service \
+                                http://foodkart-restaurant-service:8081/actuator/health || return 1
+
+                            check_menu_tcp || return 1
+
+                            check_health auth-service \
+                                http://foodkart-auth-service:8083/actuator/health || return 1
+
+                            check_health order-service \
+                                http://foodkart-order-service:8084/actuator/health || return 1
+
+                            check_health payment-service \
+                                http://foodkart-payment-service:8085/actuator/health || return 1
+
+                            check_health delivery-service \
+                                http://foodkart-delivery-service:8086/actuator/health || return 1
+
+                            check_health api-gateway \
+                                http://foodkart-api-gateway:8080/actuator/health || return 1
+                        }
+
+                        # ---------------------------------------
+                        # Deploy New Docker Images
+                        # ---------------------------------------
+
+                        deploy_new() {
+                            echo "Checking new Docker images..."
+
                             for service in $SERVICES; do
                                 docker image inspect \
                                     "foodkart-$service:$BUILD_NUMBER" \
                                     >/dev/null 2>&1 || return 1
                             done
 
-                            # Promote the new images to their Compose tags.
+                            echo "Promoting new images to latest..."
+
                             for service in $SERVICES; do
                                 docker tag \
                                     "foodkart-$service:$BUILD_NUMBER" \
                                     "foodkart-$service:latest" || return 1
                             done
+
+                            echo "Creating or updating Docker containers..."
+
+                            docker compose -f compose.yaml up \
+                                -d \
+                                --no-deps \
+                                --no-build \
+                                --pull never \
+                                --force-recreate \
+                                --wait \
+                                --wait-timeout 180 \
+                                $SERVICES || return 1
+
+                            echo "Verifying deployed microservices..."
+
+                            verify_all || return 1
+
+                            return 0
+                        }
+
+                        # ---------------------------------------
+                        # Restore Previous Docker Images
+                        # ---------------------------------------
+
+                        rollback() {
+                            echo "Restoring previous application images..."
+
+                            for service in $SERVICES; do
+                                docker image inspect \
+                                    "foodkart-$service:rollback-$BUILD_NUMBER" \
+                                    >/dev/null 2>&1 || return 1
+                            done
+
+                            for service in $SERVICES; do
+                                docker tag \
+                                    "foodkart-$service:rollback-$BUILD_NUMBER" \
+                                    "foodkart-$service:latest" || return 1
+                            done
+
+                            echo "Recreating containers using previous images..."
 
                             docker compose -f compose.yaml up \
                                 -d \
@@ -315,71 +462,34 @@ pipeline {
 
                             verify_all || return 1
 
+                            echo "Previous version restored successfully."
                             return 0
                         }
 
-                        rollback() {
-                            echo "Restoring previous application images..."
-
-                            rollback_status=0
-
-                            for service in $SERVICES; do
-                                docker image inspect \
-                                    "foodkart-$service:rollback-$BUILD_NUMBER" \
-                                    >/dev/null 2>&1 || {
-                                        echo "ERROR: Missing rollback image for $service."
-                                        rollback_status=1
-                                        continue
-                                    }
-
-                                docker tag \
-                                    "foodkart-$service:rollback-$BUILD_NUMBER" \
-                                    "foodkart-$service:latest" || rollback_status=1
-                            done
-
-                            if [ "$rollback_status" -ne 0 ]; then
-                                echo "CRITICAL: Could not restore every image tag."
-                                return 1
-                            fi
-
-                            docker compose -f compose.yaml up \
-                                -d \
-                                --no-deps \
-                                --no-build \
-                                --pull never \
-                                --force-recreate \
-                                --wait \
-                                --wait-timeout 180 \
-                                $SERVICES || rollback_status=1
-
-                            if [ "$rollback_status" -eq 0 ]; then
-                                verify_all || rollback_status=1
-                            fi
-
-                            if [ "$rollback_status" -eq 0 ]; then
-                                echo "Rollback completed and verified."
-                                return 0
-                            fi
-
-                            echo "CRITICAL: Rollback failed or verification failed."
-                            return 1
-                        }
+                        # ---------------------------------------
+                        # Deployment Execution
+                        # ---------------------------------------
 
                         echo "Starting FoodKart deployment..."
 
-                        if deploy_new_version; then
-                            echo "FoodKart deployment verified successfully."
+                        if deploy_new; then
+                            echo "FOODKART DEPLOYMENT SUCCESSFUL."
                         else
-                            echo "Deployment failed. Starting rollback."
+                            echo "FOODKART DEPLOYMENT FAILED."
 
-                            if rollback; then
-                                echo "Previous application version restored."
+                            if [ "$HAS_ROLLBACK" = "true" ]; then
+                                echo "Starting automatic rollback..."
+
+                                if rollback; then
+                                    echo "Rollback successful."
+                                else
+                                    echo "CRITICAL: Rollback failed."
+                                fi
                             else
-                                echo "CRITICAL: Automatic rollback could not be verified."
+                                echo "First deployment: no previous version exists."
+                                echo "Inspect containers and application logs."
                             fi
 
-                            # Deliberately fail the Jenkins build even if
-                            # rollback succeeds, so the release failure is visible.
                             exit 1
                         fi
                     '''
@@ -390,11 +500,11 @@ pipeline {
 
     post {
         success {
-            echo 'FoodKart pipeline completed successfully.'
+            echo 'FoodKart CI/CD pipeline completed successfully.'
         }
 
         failure {
-            echo 'FoodKart pipeline failed. Review the console output and deployment status.'
+            echo 'FoodKart CI/CD pipeline failed. Check console output.'
         }
     }
 }
