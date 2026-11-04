@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 
 public interface MenuItemService {
     MenuItemResponseDTO getMenuItemByFoodItemId(Long foodItemId);
+    Page<MenuItemResponseDTO> getPopularFoodItems(Pageable pageable);
     MenuItemResponseDTO getMenuItemByRestaurantIdAndFoodItemId(Long restaurantId, Long foodItemId);
     Page<MenuItemResponseDTO> getAllMenuItemByRestaurantId(Long restaurantId, Pageable pageable);
     Page<MenuItemResponseDTO> getAllAvailableMenuItemByRestaurantId(Long restaurantId, Pageable pageable);

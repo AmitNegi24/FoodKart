@@ -2,15 +2,18 @@ package com.foodkart.menu_service.service;
 
 import com.foodkart.menu_service.client.RestaurantClient;
 import com.foodkart.menu_service.dto.*;
+import com.foodkart.menu_service.entity.FoodItemPopularity;
 import com.foodkart.menu_service.entity.MenuItem;
 import com.foodkart.menu_service.exception.MenuItemNotFoundException;
 import com.foodkart.menu_service.model.FoodItemCategory;
 import com.foodkart.menu_service.model.MenuCategory;
+import com.foodkart.menu_service.repository.FoodItemPopularityRepository;
 import com.foodkart.menu_service.repository.MenuItemRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
@@ -18,7 +21,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Optional;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +33,7 @@ import java.util.Optional;
 public class MenuItemServiceImpl implements MenuItemService {
 
     private final MenuItemRepository menuItemRepository;
+    private final FoodItemPopularityRepository foodItemPopularityRepository;
     private final RestaurantClient restaurantClient;
 
     @Override
@@ -73,6 +81,56 @@ public class MenuItemServiceImpl implements MenuItemService {
 
         return mapToResponse(menuItem);
     }
+
+
+    @Override
+    public Page<MenuItemResponseDTO> getPopularFoodItems(Pageable pageable) {
+
+        // 1. Fetch popularity records in descending order
+        Page<FoodItemPopularity> popularityPage =
+                foodItemPopularityRepository
+                        .findAllByOrderByTotalOrdersDesc(pageable);
+
+        // 2. Extract food item IDs
+        List<Long> foodItemIds = popularityPage.getContent()
+                .stream()
+                .map(FoodItemPopularity::getFoodItemId)
+                .toList();
+
+        if (foodItemIds.isEmpty()) {
+            return new PageImpl<>(
+                    List.of(),
+                    pageable,
+                    popularityPage.getTotalElements()
+            );
+        }
+
+        // 3. Fetch actual menu item details
+        List<MenuItem> menuItems =
+                menuItemRepository.findAllByIdIn(foodItemIds);
+
+        // 4. Convert menu items into a Map for quick lookup
+        Map<Long, MenuItem> menuItemMap = menuItems.stream()
+                .collect(Collectors.toMap(
+                        MenuItem::getId,
+                        Function.identity()
+                ));
+
+        // 5. Preserve popularity order while creating response DTOs
+        List<MenuItemResponseDTO> response = foodItemIds.stream()
+                .map(menuItemMap::get)
+                .filter(Objects::nonNull)
+                .map(this::mapToResponse)
+                .toList();
+
+        // 6. Return paginated response
+        return new PageImpl<>(
+                response,
+                pageable,
+                popularityPage.getTotalElements()
+        );
+    }
+
 
     @Override
     public MenuItemResponseDTO getMenuItemByRestaurantIdAndFoodItemId(Long restaurantId, Long foodItemId){

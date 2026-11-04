@@ -11,6 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,6 +26,18 @@ public class MenuItemController {
 
     private static final Logger log = LoggerFactory.getLogger(MenuItemController.class);
     private final MenuItemService menuItemService;
+
+
+    @GetMapping("/trending")
+    public ResponseEntity<Page<MenuItemResponseDTO>> getPopularFoodItems(
+            @PageableDefault(size = 20, sort = "totalOrders",
+                    direction = Sort.Direction.DESC)
+            Pageable pageable) {
+
+        return ResponseEntity.ok(
+                menuItemService.getPopularFoodItems(pageable)
+        );
+    }
 
     @GetMapping("/food-items/{foodItemId}")
     public ResponseEntity<MenuItemResponseDTO> getMenuItemByFoodItemId(

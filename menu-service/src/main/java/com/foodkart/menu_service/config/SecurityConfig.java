@@ -32,7 +32,8 @@ public class SecurityConfig {
                         .authenticated()
                         .requestMatchers("/actuator/health",
                                 "/menu-items/food-items/**",
-                                "/menu-items/restaurants/**")
+                                "/menu-items/restaurants/**",
+                                "/menu-items/trending/**")
                         .permitAll()
 
                         .anyRequest()

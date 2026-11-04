@@ -8,9 +8,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
     Page<MenuItem> findAll(Pageable pageable);
+    List<MenuItem> findAllByIdIn(List<Long> ids);
     MenuItem findByRestaurantIdAndId(Long restaurantId, Long foodItemId);
     Page<MenuItem> findAllByRestaurantId(Long restaurantId, Pageable pageable);
     Page<MenuItem> findAllByRestaurantIdAndFoodItemAvailableTrue(Long restaurantId, Pageable pageable);
