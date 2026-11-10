@@ -182,78 +182,78 @@ class OrderServiceImplTest {
     void updateOrderStatus_pendingToConfirmed_success() {
         savedOrder.setStatus(OrderStatus.PENDING);
         when(orderRepository.findById(1L)).thenReturn(Optional.of(savedOrder));
-        when(orderRepository.save(any(Order.class))).thenReturn(savedOrder);
+        when(orderRepository.saveAndFlush(any(Order.class))).thenReturn(savedOrder);
         when(orderRepository.findById(1L)).thenReturn(Optional.of(savedOrder));
 
         OrderResponseDTO result = orderService.updateOrderStatus(1L, OrderStatus.CONFIRMED);
 
         assertNotNull(result);
-        verify(orderRepository, times(1)).save(any(Order.class));
+        verify(orderRepository, times(1)).saveAndFlush(any(Order.class));
     }
 
     @Test
     void updateOrderStatus_confirmedToPreparing_success() {
         savedOrder.setStatus(OrderStatus.CONFIRMED);
         when(orderRepository.findById(1L)).thenReturn(Optional.of(savedOrder));
-        when(orderRepository.save(any(Order.class))).thenReturn(savedOrder);
+        when(orderRepository.saveAndFlush(any(Order.class))).thenReturn(savedOrder);
         when(orderRepository.findById(1L)).thenReturn(Optional.of(savedOrder));
 
         OrderResponseDTO result = orderService.updateOrderStatus(1L, OrderStatus.PREPARING);
 
         assertNotNull(result);
-        verify(orderRepository, times(1)).save(any(Order.class));
+        verify(orderRepository, times(1)).saveAndFlush(any(Order.class));
     }
 
     @Test
     void updateOrderStatus_preparingToReadyForPickup_success() {
         savedOrder.setStatus(OrderStatus.PREPARING);
         when(orderRepository.findById(1L)).thenReturn(Optional.of(savedOrder));
-        when(orderRepository.save(any(Order.class))).thenReturn(savedOrder);
+        when(orderRepository.saveAndFlush(any(Order.class))).thenReturn(savedOrder);
         when(orderRepository.findById(1L)).thenReturn(Optional.of(savedOrder));
 
         OrderResponseDTO result = orderService.updateOrderStatus(1L, OrderStatus.READY_FOR_PICKUP);
 
         assertNotNull(result);
-        verify(orderRepository, times(1)).save(any(Order.class));
+        verify(orderRepository, times(1)).saveAndFlush(any(Order.class));
     }
 
     @Test
     void updateOrderStatus_readyForPickupToOutForDelivery_success() {
         savedOrder.setStatus(OrderStatus.READY_FOR_PICKUP);
         when(orderRepository.findById(1L)).thenReturn(Optional.of(savedOrder));
-        when(orderRepository.save(any(Order.class))).thenReturn(savedOrder);
+        when(orderRepository.saveAndFlush(any(Order.class))).thenReturn(savedOrder);
         when(orderRepository.findById(1L)).thenReturn(Optional.of(savedOrder));
 
         OrderResponseDTO result = orderService.updateOrderStatus(1L, OrderStatus.OUT_FOR_DELIVERY);
 
         assertNotNull(result);
-        verify(orderRepository, times(1)).save(any(Order.class));
+        verify(orderRepository, times(1)).saveAndFlush(any(Order.class));
     }
 
     @Test
     void updateOrderStatus_outForDeliveryToDelivered_success() {
         savedOrder.setStatus(OrderStatus.OUT_FOR_DELIVERY);
         when(orderRepository.findById(1L)).thenReturn(Optional.of(savedOrder));
-        when(orderRepository.save(any(Order.class))).thenReturn(savedOrder);
+        when(orderRepository.saveAndFlush(any(Order.class))).thenReturn(savedOrder);
         when(orderRepository.findById(1L)).thenReturn(Optional.of(savedOrder));
 
         OrderResponseDTO result = orderService.updateOrderStatus(1L, OrderStatus.DELIVERED);
 
         assertNotNull(result);
-        verify(orderRepository, times(1)).save(any(Order.class));
+        verify(orderRepository, times(1)).saveAndFlush(any(Order.class));
     }
 
     @Test
     void updateOrderStatus_pendingToCancelled_success() {
         savedOrder.setStatus(OrderStatus.PENDING);
         when(orderRepository.findById(1L)).thenReturn(Optional.of(savedOrder));
-        when(orderRepository.save(any(Order.class))).thenReturn(savedOrder);
+        when(orderRepository.saveAndFlush(any(Order.class))).thenReturn(savedOrder);
         when(orderRepository.findById(1L)).thenReturn(Optional.of(savedOrder));
 
         OrderResponseDTO result = orderService.updateOrderStatus(1L, OrderStatus.CANCELLED);
 
         assertNotNull(result);
-        verify(orderRepository, times(1)).save(any(Order.class));
+        verify(orderRepository, times(1)).saveAndFlush(any(Order.class));
     }
 
     @Test
@@ -265,7 +265,7 @@ class OrderServiceImplTest {
             orderService.updateOrderStatus(1L, OrderStatus.PREPARING)
         );
 
-        verify(orderRepository, never()).save(any());
+        verify(orderRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -277,7 +277,7 @@ class OrderServiceImplTest {
         );
 
         verify(orderRepository, times(1)).findById(999L);
-        verify(orderRepository, never()).save(any());
+        verify(orderRepository, never()).saveAndFlush(any());
     }
 
     @Test

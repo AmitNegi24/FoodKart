@@ -62,6 +62,7 @@ class OrderTest {
                 OrderStatus.PENDING,
                 now,
                 now,
+                null,
                 List.of()
         );
 
@@ -73,6 +74,7 @@ class OrderTest {
         assertEquals(OrderStatus.PENDING, order.getStatus());
         assertEquals(now, order.getCreatedAt());
         assertEquals(now, order.getUpdatedAt());
+        assertNull(order.getDeliveredAt());
         assertNotNull(order.getItems());
     }
 

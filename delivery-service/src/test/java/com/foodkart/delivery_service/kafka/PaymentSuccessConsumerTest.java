@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -17,20 +16,10 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class PaymentSuccessConsumerTest {
 
-    @Mock
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Mock
     private DeliveryService deliveryService;
-
-    @Mock
-    private JsonNode event;
-
-    @Mock
-    private JsonNode orderIdNode;
-
-    @Mock
-    private JsonNode statusNode;
 
     private PaymentSuccessConsumer consumer;
 
@@ -42,35 +31,12 @@ class PaymentSuccessConsumerTest {
         );
     }
 
-    private void mockReadyForPickup(Long orderId)
-            throws Exception {
-
-        when(objectMapper.readTree(anyString()))
-                .thenReturn(event);
-
-        when(event.get("orderId"))
-                .thenReturn(orderIdNode);
-
-        when(event.get("status"))
-                .thenReturn(statusNode);
-
-        when(orderIdNode.asLong())
-                .thenReturn(orderId);
-
-        when(statusNode.asText())
-                .thenReturn("READY_FOR_PICKUP");
-    }
-
     @Test
     void testReadyForPickupCreatesDelivery()
             throws Exception {
 
-        mockReadyForPickup(101L);
-
-        assertDoesNotThrow(() ->
-                consumer.consumeOrderReadyForPickup(
-                        "{\"orderId\":101,\"status\":\"READY_FOR_PICKUP\"}"
-                )
+        consumer.consumeOrderReadyForPickup(
+                "{\"orderId\":101,\"status\":\"READY_FOR_PICKUP\"}"
         );
 
         verify(deliveryService, times(1))
@@ -80,8 +46,6 @@ class PaymentSuccessConsumerTest {
     @Test
     void testDifferentOrderId()
             throws Exception {
-
-        mockReadyForPickup(202L);
 
         consumer.consumeOrderReadyForPickup(
                 "{\"orderId\":202,\"status\":\"READY_FOR_PICKUP\"}"
@@ -95,25 +59,8 @@ class PaymentSuccessConsumerTest {
     void testUnexpectedStatusIgnored()
             throws Exception {
 
-        when(objectMapper.readTree(anyString()))
-                .thenReturn(event);
-
-        when(event.get("orderId"))
-                .thenReturn(orderIdNode);
-
-        when(event.get("status"))
-                .thenReturn(statusNode);
-
-        when(orderIdNode.asLong())
-                .thenReturn(101L);
-
-        when(statusNode.asText())
-                .thenReturn("CONFIRMED");
-
-        assertDoesNotThrow(() ->
-                consumer.consumeOrderReadyForPickup(
-                        "{\"orderId\":101,\"status\":\"CONFIRMED\"}"
-                )
+        consumer.consumeOrderReadyForPickup(
+                "{\"orderId\":101,\"status\":\"CONFIRMED\"}"
         );
 
         verifyNoInteractions(deliveryService);
@@ -122,11 +69,6 @@ class PaymentSuccessConsumerTest {
     @Test
     void testDeserializationError()
             throws Exception {
-
-        when(objectMapper.readTree(anyString()))
-                .thenThrow(new IllegalArgumentException(
-                        "Invalid JSON"
-                ));
 
         IllegalStateException exception = assertThrows(
                 IllegalStateException.class,
@@ -147,12 +89,8 @@ class PaymentSuccessConsumerTest {
     void testDeliveryServiceError()
             throws Exception {
 
-        mockReadyForPickup(101L);
-
-        when(deliveryService.createDelivery(101L))
-                .thenThrow(new IllegalStateException(
-                        "Database unavailable"
-                ));
+        doThrow(new IllegalStateException("Database unavailable"))
+                .when(deliveryService).createDelivery(101L);
 
         IllegalStateException exception = assertThrows(
                 IllegalStateException.class,

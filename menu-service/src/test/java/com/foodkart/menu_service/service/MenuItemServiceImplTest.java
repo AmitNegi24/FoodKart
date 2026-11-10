@@ -5,10 +5,12 @@ import com.foodkart.menu_service.dto.FoodItemRequestDTO;
 import com.foodkart.menu_service.dto.MenuItemRequestDTO;
 import com.foodkart.menu_service.dto.MenuItemResponseDTO;
 import com.foodkart.menu_service.dto.RestaurantDTO;
+import com.foodkart.menu_service.entity.FoodItemPopularity;
 import com.foodkart.menu_service.entity.MenuItem;
 import com.foodkart.menu_service.exception.MenuItemNotFoundException;
 import com.foodkart.menu_service.model.FoodItemCategory;
 import com.foodkart.menu_service.model.MenuCategory;
+import com.foodkart.menu_service.repository.FoodItemPopularityRepository;
 import com.foodkart.menu_service.repository.MenuItemRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,9 +22,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -37,7 +42,13 @@ class MenuItemServiceImplTest {
     private MenuItemRepository menuItemRepository;
 
     @Mock
+    private FoodItemPopularityRepository foodItemPopularityRepository;
+
+    @Mock
     private RestaurantClient restaurantClient;
+
+    @Mock
+    private ObjectMapper objectMapper;
 
     @InjectMocks
     private MenuItemServiceImpl menuItemService;
@@ -276,5 +287,141 @@ class MenuItemServiceImplTest {
 
         assertThrows(RuntimeException.class, () -> menuItemService.deleteMenuItem(1L, 1L));
         verify(menuItemRepository, never()).deleteByRestaurantIdAndId(anyLong(), anyLong());
+    }
+
+    @Test
+    void getPopularFoodItems_success() {
+        FoodItemPopularity popularity = FoodItemPopularity.builder()
+                .foodItemId(1L)
+                .totalOrders(100L)
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        Page<FoodItemPopularity> popularityPage = new PageImpl<>(List.of(popularity));
+        when(foodItemPopularityRepository.findByFoodItemIdGreaterThanAndTotalOrdersGreaterThanOrderByTotalOrdersDesc(
+                eq(0L), eq(0L), any(Pageable.class)))
+                .thenReturn(popularityPage);
+        when(menuItemRepository.findAllByIdIn(List.of(1L))).thenReturn(List.of(menuItem));
+
+        Page<MenuItemResponseDTO> result = menuItemService.getPopularFoodItems(PageRequest.of(0, 10));
+
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+        assertEquals(1L, result.getContent().get(0).getFoodItemId());
+    }
+
+    @Test
+    void getPopularFoodItems_empty() {
+        Page<FoodItemPopularity> emptyPage = new PageImpl<>(List.of());
+        when(foodItemPopularityRepository.findByFoodItemIdGreaterThanAndTotalOrdersGreaterThanOrderByTotalOrdersDesc(
+                eq(0L), eq(0L), any(Pageable.class)))
+                .thenReturn(emptyPage);
+
+        Page<MenuItemResponseDTO> result = menuItemService.getPopularFoodItems(PageRequest.of(0, 10));
+
+        assertNotNull(result);
+        assertEquals(0, result.getTotalElements());
+    }
+
+    @Test
+    void getPopularFoodItems_menuItemsNotFound() {
+        FoodItemPopularity popularity = FoodItemPopularity.builder()
+                .foodItemId(1L)
+                .totalOrders(100L)
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        Page<FoodItemPopularity> popularityPage = new PageImpl<>(List.of(popularity));
+        when(foodItemPopularityRepository.findByFoodItemIdGreaterThanAndTotalOrdersGreaterThanOrderByTotalOrdersDesc(
+                eq(0L), eq(0L), any(Pageable.class)))
+                .thenReturn(popularityPage);
+        when(menuItemRepository.findAllByIdIn(List.of(1L))).thenReturn(List.of());
+
+        Page<MenuItemResponseDTO> result = menuItemService.getPopularFoodItems(PageRequest.of(0, 10));
+
+        assertNotNull(result);
+        assertEquals(0, result.getContent().size());
+    }
+
+    @Test
+    void consumePopularitySnapshot_success() throws Exception {
+        String message = "{\"generatedAt\":\"2026-11-10T00:00:00Z\",\"popularity\":{\"1\":100,\"2\":50}}";
+        Map<String, Object> payload = Map.of(
+                "generatedAt", "2026-11-10T00:00:00Z",
+                "popularity", Map.of("1", 100, "2", 50)
+        );
+
+        FoodItemPopularity metadata = FoodItemPopularity.builder()
+                .foodItemId(0L)
+                .totalOrders(0L)
+                .updatedAt(LocalDateTime.now().minusDays(1))
+                .build();
+
+        when(objectMapper.readValue(message, Map.class)).thenReturn(payload);
+        when(foodItemPopularityRepository.findByFoodItemIdForUpdate(0L)).thenReturn(Optional.of(metadata));
+        when(foodItemPopularityRepository.findAll()).thenReturn(new java.util.ArrayList<>());
+
+        menuItemService.consumePopularitySnapshot(message);
+
+        verify(foodItemPopularityRepository, times(1)).saveAll(any());
+    }
+
+    @Test
+    void consumePopularitySnapshot_staleSnapshot() throws Exception {
+        String message = "{\"generatedAt\":\"2026-11-09T00:00:00Z\",\"popularity\":{\"1\":100}}";
+        Map<String, Object> payload = Map.of(
+                "generatedAt", "2026-11-09T00:00:00Z",
+                "popularity", Map.of("1", 100)
+        );
+
+        FoodItemPopularity metadata = FoodItemPopularity.builder()
+                .foodItemId(0L)
+                .totalOrders(0L)
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        when(objectMapper.readValue(message, Map.class)).thenReturn(payload);
+        when(foodItemPopularityRepository.findByFoodItemIdForUpdate(0L)).thenReturn(Optional.of(metadata));
+
+        menuItemService.consumePopularitySnapshot(message);
+
+        verify(foodItemPopularityRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void consumePopularitySnapshot_invalidPayload() throws Exception {
+        String message = "{\"invalid\":\"data\"}";
+        Map<String, Object> payload = Map.of("invalid", "data");
+
+        when(objectMapper.readValue(message, Map.class)).thenReturn(payload);
+
+        assertThrows(IllegalArgumentException.class, () -> menuItemService.consumePopularitySnapshot(message));
+    }
+
+    @Test
+    void consumePopularitySnapshot_negativeScore() throws Exception {
+        String message = "{\"generatedAt\":\"2026-11-10T00:00:00Z\",\"popularity\":{\"1\":-10}}";
+        Map<String, Object> payload = Map.of(
+                "generatedAt", "2026-11-10T00:00:00Z",
+                "popularity", Map.of("1", -10)
+        );
+
+        when(objectMapper.readValue(message, Map.class)).thenReturn(payload);
+
+        assertThrows(IllegalArgumentException.class, () -> menuItemService.consumePopularitySnapshot(message));
+    }
+
+    @Test
+    void consumePopularitySnapshot_metadataNotFound() throws Exception {
+        String message = "{\"generatedAt\":\"2026-11-10T00:00:00Z\",\"popularity\":{\"1\":100}}";
+        Map<String, Object> payload = Map.of(
+                "generatedAt", "2026-11-10T00:00:00Z",
+                "popularity", Map.of("1", 100)
+        );
+
+        when(objectMapper.readValue(message, Map.class)).thenReturn(payload);
+        when(foodItemPopularityRepository.findByFoodItemIdForUpdate(0L)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalStateException.class, () -> menuItemService.consumePopularitySnapshot(message));
     }
 }
