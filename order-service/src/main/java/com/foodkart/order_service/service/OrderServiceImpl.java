@@ -15,13 +15,17 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Map;
+import java.util.LinkedHashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -269,11 +273,113 @@ public class OrderServiceImpl implements OrderService {
                             + currentStatus + " -> " + newStatus
             );
         }
-
         order.setStatus(newStatus);
-        orderRepository.save(order);
+
+        if (newStatus == OrderStatus.DELIVERED) {
+            order.setDeliveredAt(LocalDateTime.now());
+
+        }
+
+        orderRepository.saveAndFlush(order);
+
+// Notify Delivery Service when food is ready.
+        if (newStatus == OrderStatus.READY_FOR_PICKUP) {
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("orderId", order.getId());
+            payload.put("status", "READY_FOR_PICKUP");
+
+            OutboxEvent event = OutboxEvent.builder()
+                    .aggregateType("ORDER")
+                    .aggregateId(order.getId().toString())
+                    .eventType("ORDER_READY_FOR_PICKUP")
+                    .payload(objectMapper.writeValueAsString(payload))
+                    .status(OutboxStatus.PENDING)
+                    .build();
+
+            outboxEventRepository.save(event);
+        }
+
+// Update popularity only after successful delivery.
+        if (newStatus == OrderStatus.DELIVERED) {
+            publishPopularitySnapshot();
+        }
+
 
         return getOrderById(orderId);
     }
+
+
+    @Transactional(readOnly = true)
+    public Map<Long, Long> calculateWeeklyPopularity() {
+
+        // Use the Indian calendar date for popularity.
+        LocalDate today = LocalDate.now(
+                ZoneId.of("Asia/Kolkata")
+        );
+
+        // Include today and the previous 6 calendar days.
+        LocalDateTime startTime = today
+                .minusDays(6)
+                .atStartOfDay();
+
+        // Exclusive upper boundary.
+        LocalDateTime endTime = today
+                .plusDays(1)
+                .atStartOfDay();
+
+        // Get aggregated popularity from OrderRepository.
+        List<Object[]> results =
+                orderRepository.findWeeklyFoodItemPopularity(
+                        startTime,
+                        endTime
+                );
+
+        Map<Long, Long> popularity = new LinkedHashMap<>();
+
+        for (Object[] row : results) {
+
+            Long menuItemId =
+                    ((Number) row[0]).longValue();
+
+            Long popularityCount =
+                    ((Number) row[1]).longValue();
+
+            popularity.put(menuItemId, popularityCount);
+        }
+
+        return popularity;
+    }
+
+    @Transactional
+    public void publishPopularitySnapshot() {
+
+        Map<Long, Long> popularity = calculateWeeklyPopularity();
+
+        LocalDate snapshotDate = LocalDate.now(
+                ZoneId.of("Asia/Kolkata")
+        );
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("snapshotDate", snapshotDate.toString());
+        payload.put("generatedAt", java.time.Instant.now().toString());
+        payload.put("popularity", popularity);
+
+        String eventPayload =
+                objectMapper.writeValueAsString(payload);
+
+
+        OutboxEvent event = OutboxEvent.builder()
+                .aggregateType("FOOD_POPULARITY")
+                .aggregateId("weekly-food-popularity")
+                .eventType("FOOD_POPULARITY_SNAPSHOT")
+                .payload(eventPayload)
+                .status(OutboxStatus.PENDING)
+                .build();
+
+
+        outboxEventRepository.save(event);
+    }
+
 
 }

@@ -1,112 +1,172 @@
+
 package com.foodkart.delivery_service.kafka;
 
-import com.foodkart.delivery_service.dto.DeliveryResponseDTO;
-import com.foodkart.delivery_service.dto.PaymentSuccessEvent;
 import com.foodkart.delivery_service.service.DeliveryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-import java.math.BigDecimal;
-
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class PaymentSuccessConsumerTest {
 
+    @Mock
     private ObjectMapper objectMapper;
-    private DeliveryService deliveryService;
-    private PaymentSuccessConsumer paymentSuccessConsumer;
 
-    private PaymentSuccessEvent paymentSuccessEvent;
+    @Mock
+    private DeliveryService deliveryService;
+
+    @Mock
+    private JsonNode event;
+
+    @Mock
+    private JsonNode orderIdNode;
+
+    @Mock
+    private JsonNode statusNode;
+
+    private PaymentSuccessConsumer consumer;
 
     @BeforeEach
     void setUp() {
-        objectMapper = mock(ObjectMapper.class);
-        deliveryService = mock(DeliveryService.class);
-        paymentSuccessConsumer = new PaymentSuccessConsumer(objectMapper, deliveryService);
-
-        paymentSuccessEvent = PaymentSuccessEvent.builder()
-                .paymentId(1L)
-                .orderId(101L)
-                .userEmailId("test@example.com")
-                .amount(new BigDecimal("100.00"))
-                .correlationId("corr-123")
-                .build();
-    }
-
-    @Test
-    void testConsumePaymentSuccess_success() throws Exception {
-        when(objectMapper.readValue(anyString(), eq(PaymentSuccessEvent.class)))
-                .thenReturn(paymentSuccessEvent);
-
-        DeliveryResponseDTO responseDTO = DeliveryResponseDTO.builder()
-                .deliveryId(1L)
-                .orderId(101L)
-                .build();
-
-        when(deliveryService.createDelivery(101L)).thenReturn(responseDTO);
-
-        assertDoesNotThrow(() ->
-                paymentSuccessConsumer.consumePaymentSuccess("{\"orderId\":101}")
+        consumer = new PaymentSuccessConsumer(
+                objectMapper,
+                deliveryService
         );
-
-        verify(deliveryService, times(1)).createDelivery(101L);
     }
 
-    @Test
-    void testConsumePaymentSuccess_differentOrderId() throws Exception {
-        PaymentSuccessEvent event = PaymentSuccessEvent.builder()
-                .paymentId(2L)
-                .orderId(202L)
-                .userEmailId("user@example.com")
-                .amount(new BigDecimal("200.00"))
-                .correlationId("corr-456")
-                .build();
+    private void mockReadyForPickup(Long orderId)
+            throws Exception {
 
-        when(objectMapper.readValue(anyString(), eq(PaymentSuccessEvent.class)))
+        when(objectMapper.readTree(anyString()))
                 .thenReturn(event);
 
-        DeliveryResponseDTO responseDTO = DeliveryResponseDTO.builder()
-                .deliveryId(2L)
-                .orderId(202L)
-                .build();
+        when(event.get("orderId"))
+                .thenReturn(orderIdNode);
 
-        when(deliveryService.createDelivery(202L)).thenReturn(responseDTO);
+        when(event.get("status"))
+                .thenReturn(statusNode);
+
+        when(orderIdNode.asLong())
+                .thenReturn(orderId);
+
+        when(statusNode.asText())
+                .thenReturn("READY_FOR_PICKUP");
+    }
+
+    @Test
+    void testReadyForPickupCreatesDelivery()
+            throws Exception {
+
+        mockReadyForPickup(101L);
 
         assertDoesNotThrow(() ->
-                paymentSuccessConsumer.consumePaymentSuccess("{\"orderId\":202}")
+                consumer.consumeOrderReadyForPickup(
+                        "{\"orderId\":101,\"status\":\"READY_FOR_PICKUP\"}"
+                )
         );
 
-        verify(deliveryService, times(1)).createDelivery(202L);
+        verify(deliveryService, times(1))
+                .createDelivery(101L);
     }
 
     @Test
-    void testConsumePaymentSuccess_deserializationError() throws Exception {
-        when(objectMapper.readValue(anyString(), eq(PaymentSuccessEvent.class)))
-                .thenThrow(new RuntimeException("Deserialization error"));
+    void testDifferentOrderId()
+            throws Exception {
 
-        assertThrows(
-                RuntimeException.class,
-                () -> paymentSuccessConsumer.consumePaymentSuccess("invalid json")
+        mockReadyForPickup(202L);
+
+        consumer.consumeOrderReadyForPickup(
+                "{\"orderId\":202,\"status\":\"READY_FOR_PICKUP\"}"
         );
 
-        verify(deliveryService, never()).createDelivery(anyLong());
+        verify(deliveryService, times(1))
+                .createDelivery(202L);
     }
 
     @Test
-    void testConsumePaymentSuccess_serviceError() throws Exception {
-        when(objectMapper.readValue(anyString(), eq(PaymentSuccessEvent.class)))
-                .thenReturn(paymentSuccessEvent);
+    void testUnexpectedStatusIgnored()
+            throws Exception {
+
+        when(objectMapper.readTree(anyString()))
+                .thenReturn(event);
+
+        when(event.get("orderId"))
+                .thenReturn(orderIdNode);
+
+        when(event.get("status"))
+                .thenReturn(statusNode);
+
+        when(orderIdNode.asLong())
+                .thenReturn(101L);
+
+        when(statusNode.asText())
+                .thenReturn("CONFIRMED");
+
+        assertDoesNotThrow(() ->
+                consumer.consumeOrderReadyForPickup(
+                        "{\"orderId\":101,\"status\":\"CONFIRMED\"}"
+                )
+        );
+
+        verifyNoInteractions(deliveryService);
+    }
+
+    @Test
+    void testDeserializationError()
+            throws Exception {
+
+        when(objectMapper.readTree(anyString()))
+                .thenThrow(new IllegalArgumentException(
+                        "Invalid JSON"
+                ));
+
+        IllegalStateException exception = assertThrows(
+                IllegalStateException.class,
+                () -> consumer.consumeOrderReadyForPickup(
+                        "invalid json"
+                )
+        );
+
+        assertEquals(
+                "Failed to process order-ready-for-pickup event",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(deliveryService);
+    }
+
+    @Test
+    void testDeliveryServiceError()
+            throws Exception {
+
+        mockReadyForPickup(101L);
 
         when(deliveryService.createDelivery(101L))
-                .thenThrow(new RuntimeException("Service error"));
+                .thenThrow(new IllegalStateException(
+                        "Database unavailable"
+                ));
 
-        assertThrows(
-                RuntimeException.class,
-                () -> paymentSuccessConsumer.consumePaymentSuccess("{\"orderId\":101}")
+        IllegalStateException exception = assertThrows(
+                IllegalStateException.class,
+                () -> consumer.consumeOrderReadyForPickup(
+                        "{\"orderId\":101,\"status\":\"READY_FOR_PICKUP\"}"
+                )
         );
+
+        assertEquals(
+                "Failed to process order-ready-for-pickup event",
+                exception.getMessage()
+        );
+
+        verify(deliveryService, times(1))
+                .createDelivery(101L);
     }
 }

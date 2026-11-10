@@ -39,8 +39,12 @@ public class DeliveryStatusUpdatedConsumer {
                     ));
 
             OrderStatus targetStatus = switch (event.getStatus()) {
-                case "PICKED_UP" -> OrderStatus.OUT_FOR_DELIVERY;
-                case "DELIVERED" -> OrderStatus.DELIVERED;
+                case "PICKED_UP", "OUT_FOR_DELIVERY" ->
+                        OrderStatus.OUT_FOR_DELIVERY;
+
+                case "DELIVERED" ->
+                        OrderStatus.DELIVERED;
+
                 default -> null;
             };
 

@@ -1,12 +1,12 @@
 
 package com.foodkart.delivery_service.kafka;
 
-import com.foodkart.delivery_service.dto.PaymentSuccessEvent;
 import com.foodkart.delivery_service.service.DeliveryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 @Component
@@ -18,39 +18,42 @@ public class PaymentSuccessConsumer {
     private final DeliveryService deliveryService;
 
     @KafkaListener(
-            topics = "payment-success",
-            groupId = "delivery-service-group"
+            topics = "order-ready-for-pickup",
+            groupId = "delivery-ready-for-pickup-group"
     )
-    public void consumePaymentSuccess(String message) {
+    public void consumeOrderReadyForPickup(String message) {
 
         try {
-            PaymentSuccessEvent event =
-                    objectMapper.readValue(
-                            message,
-                            PaymentSuccessEvent.class
-                    );
+            JsonNode event = objectMapper.readTree(message);
+
+            long orderId = event.get("orderId").asLong();
+            String status = event.get("status").asString();
+
+            if (!"READY_FOR_PICKUP".equals(status)) {
+                log.warn(
+                        "Ignoring unexpected order status {} for order {}",
+                        status,
+                        orderId
+                );
+                return;
+            }
+
+            deliveryService.createDelivery(orderId);
 
             log.info(
-                    "Received payment-success event for order {}",
-                    event.getOrderId()
-            );
-
-            deliveryService.createDelivery(event.getOrderId());
-
-            log.info(
-                    "Delivery created or already exists for order {}",
-                    event.getOrderId()
+                    "Order {} is ready for pickup. Delivery is available for assignment.",
+                    orderId
             );
 
         } catch (Exception e) {
             log.error(
-                    "Failed to process payment-success event: {}",
+                    "Failed to process order-ready-for-pickup event: {}",
                     message,
                     e
             );
 
-            throw new RuntimeException(
-                    "Failed to process payment-success event",
+            throw new IllegalStateException(
+                    "Failed to process order-ready-for-pickup event",
                     e
             );
         }

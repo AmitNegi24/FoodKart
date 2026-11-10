@@ -42,6 +42,9 @@ public class Order {
     @Column(nullable = false,updatable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "delivered_at")
+    private LocalDateTime deliveredAt;
+
     @OneToMany(
             cascade = CascadeType.ALL,
             orphanRemoval = true

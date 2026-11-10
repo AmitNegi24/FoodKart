@@ -26,6 +26,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.kafka.annotation.KafkaListener;
+import tools.jackson.databind.ObjectMapper;
+
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.HashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +41,7 @@ public class MenuItemServiceImpl implements MenuItemService {
     private final MenuItemRepository menuItemRepository;
     private final FoodItemPopularityRepository foodItemPopularityRepository;
     private final RestaurantClient restaurantClient;
+    private final ObjectMapper objectMapper;
 
     @Override
     public MenuItemResponseDTO createMenuItem(MenuItemRequestDTO request) {
@@ -89,7 +96,11 @@ public class MenuItemServiceImpl implements MenuItemService {
         // 1. Fetch popularity records in descending order
         Page<FoodItemPopularity> popularityPage =
                 foodItemPopularityRepository
-                        .findAllByOrderByTotalOrdersDesc(pageable);
+                        .findByFoodItemIdGreaterThanAndTotalOrdersGreaterThanOrderByTotalOrdersDesc(
+                                0L,
+                                0L,
+                                pageable
+                        );
 
         // 2. Extract food item IDs
         List<Long> foodItemIds = popularityPage.getContent()
@@ -305,4 +316,130 @@ public class MenuItemServiceImpl implements MenuItemService {
                 .foodItem(foodItemDTO)
                 .build();
     }
+
+
+    @KafkaListener(
+            topics = "food-popularity-daily",
+            groupId = "foodkart-menu-popularity-group"
+    )
+    @Transactional
+    public void consumePopularitySnapshot(String message) {
+
+        // 1. Parse incoming snapshot
+        Map<?, ?> payload =
+                objectMapper.readValue(message, Map.class);
+
+        Object timestampValue = payload.get("generatedAt");
+        Object popularityValue = payload.get("popularity");
+
+        if (!(timestampValue instanceof String)
+                || !(popularityValue instanceof Map<?, ?>)) {
+            throw new IllegalArgumentException(
+                    "Invalid popularity snapshot"
+            );
+        }
+
+        LocalDateTime snapshotTime = LocalDateTime.ofInstant(
+                Instant.parse((String) timestampValue),
+                ZoneOffset.UTC
+        );
+
+        Map<?, ?> incomingScores =
+                (Map<?, ?>) popularityValue;
+
+        Map<Long, Long> scores = new HashMap<>();
+
+        for (Map.Entry<?, ?> entry : incomingScores.entrySet()) {
+
+            Long foodItemId =
+                    Long.valueOf(entry.getKey().toString());
+
+            if (foodItemId <= 0
+                    || !(entry.getValue() instanceof Number)) {
+                throw new IllegalArgumentException(
+                        "Invalid food popularity entry"
+                );
+            }
+
+            long count =
+                    ((Number) entry.getValue()).longValue();
+
+            if (count < 0) {
+                throw new IllegalArgumentException(
+                        "Negative popularity score"
+                );
+            }
+
+            scores.put(foodItemId, count);
+        }
+
+        // 2. Metadata record tracks latest applied snapshot.
+        // foodItemId = 0 is reserved for metadata.
+        FoodItemPopularity metadata =
+                foodItemPopularityRepository
+                        .findByFoodItemIdForUpdate(0L)
+                        .orElseThrow(() ->
+                                new IllegalStateException(
+                                        "Popularity metadata record is missing"
+                                )
+                        );
+
+        // 3. Ignore duplicate or older snapshots
+        if (metadata.getUpdatedAt() != null
+                && !snapshotTime.isAfter(metadata.getUpdatedAt())) {
+
+            log.info("Skipping stale popularity snapshot");
+            return;
+        }
+
+        // 4. Reset existing scores to zero
+        List<FoodItemPopularity> existing =
+                foodItemPopularityRepository.findAll();
+
+        Map<Long, FoodItemPopularity> existingMap =
+                new HashMap<>();
+
+        for (FoodItemPopularity item : existing) {
+
+            if (item.getFoodItemId().equals(0L)) {
+                continue;
+            }
+
+            item.setTotalOrders(0L);
+            existingMap.put(item.getFoodItemId(), item);
+        }
+
+        // 5. Apply new scores
+        for (Map.Entry<Long, Long> entry : scores.entrySet()) {
+
+            FoodItemPopularity item =
+                    existingMap.get(entry.getKey());
+
+            if (item == null) {
+                item = FoodItemPopularity.builder()
+                        .foodItemId(entry.getKey())
+                        .totalOrders(entry.getValue())
+                        .updatedAt(snapshotTime)
+                        .build();
+
+                existing.add(item);
+
+            } else {
+                item.setTotalOrders(entry.getValue());
+                item.setUpdatedAt(snapshotTime);
+            }
+        }
+
+        // 6. Save rankings and metadata atomically
+        metadata.setUpdatedAt(snapshotTime);
+        metadata.setTotalOrders(0L);
+
+        foodItemPopularityRepository.saveAll(existing);
+
+        log.info(
+                "Weekly popularity snapshot applied at {}",
+                snapshotTime
+        );
+    }
+
 }

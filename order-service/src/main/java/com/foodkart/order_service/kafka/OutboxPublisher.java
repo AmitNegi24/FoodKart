@@ -1,3 +1,4 @@
+
 package com.foodkart.order_service.kafka;
 
 import com.foodkart.order_service.dto.OrderCreatedEvent;
@@ -10,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
@@ -35,16 +37,49 @@ public class OutboxPublisher {
 
             try {
 
-                OrderCreatedEvent event =
-                        objectMapper.readValue(
+                String topic;
+                Object payload;
+
+                switch (outboxEvent.getEventType()) {
+
+                    case "ORDER_CREATED" -> {
+
+                        topic = "order-created";
+
+                        payload = objectMapper.readValue(
                                 outboxEvent.getPayload(),
                                 OrderCreatedEvent.class
                         );
+                    }
+
+                    case "FOOD_POPULARITY_SNAPSHOT" -> {
+
+                        topic = "food-popularity-daily";
+
+                        payload = objectMapper.readTree(
+                                outboxEvent.getPayload()
+                        );
+                    }
+
+                    case "ORDER_READY_FOR_PICKUP" -> {
+
+                        topic = "order-ready-for-pickup";
+
+                        payload = objectMapper.readTree(
+                                outboxEvent.getPayload()
+                        );
+                    }
+
+                    default -> throw new IllegalArgumentException(
+                            "Unsupported outbox event type: "
+                                    + outboxEvent.getEventType()
+                    );
+                }
 
                 kafkaTemplate.send(
-                        "order-created",
+                        topic,
                         outboxEvent.getAggregateId(),
-                        event
+                        payload
                 ).get();
 
                 outboxEvent.setStatus(
@@ -54,7 +89,9 @@ public class OutboxPublisher {
                 outboxEventRepository.save(outboxEvent);
 
                 System.out.println(
-                        "Outbox event published successfully. ID: "
+                        "Outbox event published successfully: "
+                                + outboxEvent.getEventType()
+                                + " | ID: "
                                 + outboxEvent.getId()
                 );
 
