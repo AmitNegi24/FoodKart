@@ -1,8 +1,10 @@
 spring:
   application:
     name: menu-service
+
   cache:
     type: redis
+
   data:
     redis:
       host: localhost
@@ -14,8 +16,6 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
-
-
   jpa:
     hibernate:
       ddl-auto: update
@@ -24,7 +24,14 @@ spring:
       hibernate:
         format_sql: true
 
-#//secrets are exported to .env
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: foodkart-menu-popularity-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
 jwt:
   secret: ${JWT_SECRET}
 
