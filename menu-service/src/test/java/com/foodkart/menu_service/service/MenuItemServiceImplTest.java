@@ -345,7 +345,9 @@ class MenuItemServiceImplTest {
 
     @Test
     void consumePopularitySnapshot_success() throws Exception {
-        String message = "{\"generatedAt\":\"2026-11-10T00:00:00Z\",\"popularity\":{\"1\":100,\"2\":50}}";
+        String message =
+                "{\"generatedAt\":\"2026-11-10T00:00:00Z\",\"popularity\":{\"1\":100,\"2\":50}}";
+
         Map<String, Object> payload = Map.of(
                 "generatedAt", "2026-11-10T00:00:00Z",
                 "popularity", Map.of("1", 100, "2", 50)
@@ -354,16 +356,22 @@ class MenuItemServiceImplTest {
         FoodItemPopularity metadata = FoodItemPopularity.builder()
                 .foodItemId(0L)
                 .totalOrders(0L)
-                .updatedAt(LocalDateTime.now().minusDays(1))
+                .updatedAt(LocalDateTime.of(2026, 11, 9, 0, 0))
                 .build();
 
-        when(objectMapper.readValue(message, Map.class)).thenReturn(payload);
-        when(foodItemPopularityRepository.findByFoodItemIdForUpdate(0L)).thenReturn(Optional.of(metadata));
-        when(foodItemPopularityRepository.findAll()).thenReturn(new java.util.ArrayList<>());
+        when(objectMapper.readValue(message, Map.class))
+                .thenReturn(payload);
+
+        when(foodItemPopularityRepository.findByFoodItemIdForUpdate(0L))
+                .thenReturn(Optional.of(metadata));
+
+        when(foodItemPopularityRepository.findAll())
+                .thenReturn(new java.util.ArrayList<>());
 
         menuItemService.consumePopularitySnapshot(message);
 
-        verify(foodItemPopularityRepository, times(1)).saveAll(any());
+        verify(foodItemPopularityRepository, times(1))
+                .saveAll(any());
     }
 
     @Test
