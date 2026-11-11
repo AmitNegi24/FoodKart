@@ -27,6 +27,17 @@ public class MenuItemController {
     private static final Logger log = LoggerFactory.getLogger(MenuItemController.class);
     private final MenuItemService menuItemService;
 
+    @PostMapping("/create")
+    public ResponseEntity<MenuItemResponseDTO> createMenuItem(
+            @Valid @RequestBody MenuItemRequestDTO request) {
+        log.info("Creating menu item: {}", request);
+        MenuItemResponseDTO response =
+                menuItemService.createMenuItem(request);
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(response);
+    }
 
     @GetMapping("/trending")
     public ResponseEntity<Page<MenuItemResponseDTO>> getPopularFoodItems(
@@ -147,19 +158,6 @@ public class MenuItemController {
                 menuItemService.getAllMenuItemByRestaurantIdAndPriceRange(restaurantId, minPrice, maxPrice, pageable);
 
         return ResponseEntity.ok(response);
-    }
-
-
-    @PostMapping("/create")
-    public ResponseEntity<MenuItemResponseDTO> createMenuItem(
-            @Valid @RequestBody MenuItemRequestDTO request) {
-        log.info("Creating menu item: {}", request);
-        MenuItemResponseDTO response =
-                menuItemService.createMenuItem(request);
-
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(response);
     }
 
     @PutMapping("/update/restaurants/{restaurantId}/food-items/{foodItemId}")
