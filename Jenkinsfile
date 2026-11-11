@@ -192,28 +192,10 @@ pipeline {
                         echo 'No existing microservice containers.'
                         echo 'Skipping backup stage.'
                     }
+
                     else if (count == '7') {
                         echo 'Existing deployment detected.'
-                        echo 'Verifying running containers...'
-
-                        for (service in services) {
-                            withEnv(["SERVICE_NAME=${service}"]) {
-                                sh '''
-                                    set -eu
-
-                                    running=$(docker inspect \
-                                        --format '{{.State.Running}}' \
-                                        "foodkart-$SERVICE_NAME")
-
-                                    if [ "$running" != "true" ]; then
-                                        echo "ERROR: Existing container is stopped."
-                                        exit 1
-                                    fi
-                                '''
-                            }
-                        }
-
-                        echo 'Backing up running Docker images...'
+                        echo 'Backing up existing Docker images (running or stopped)...'
 
                         for (service in services) {
                             withEnv([
@@ -223,9 +205,16 @@ pipeline {
                                 sh '''
                                     set -eu
 
+                                    container="foodkart-$SERVICE_NAME"
+
                                     image_id=$(docker inspect \
                                         --format '{{.Image}}' \
-                                        "foodkart-$SERVICE_NAME")
+                                        "$container")
+
+                                    if [ -z "$image_id" ]; then
+                                        echo "ERROR: Could not find image for $container"
+                                        exit 1
+                                    fi
 
                                     docker tag "$image_id" \
                                         "foodkart-$SERVICE_NAME:rollback-$IMAGE_TAG"
@@ -239,6 +228,7 @@ pipeline {
 
                         echo 'All seven rollback images preserved.'
                     }
+
                     else {
                         error(
                             "Partial deployment detected: ${count}/7 containers exist. " +
