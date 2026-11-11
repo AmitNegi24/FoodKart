@@ -343,6 +343,7 @@ class MenuItemServiceImplTest {
         assertEquals(0, result.getContent().size());
     }
 
+    //see
     @Test
     void consumePopularitySnapshot_success() throws Exception {
         String message =
