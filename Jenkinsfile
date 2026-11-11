@@ -329,7 +329,6 @@ pipeline {
 
                         # ---------------------------------------
                         # Menu Service TCP Readiness Check
-                        # No Actuator required
                         # ---------------------------------------
 
                         check_menu_tcp() {
@@ -380,6 +379,44 @@ pipeline {
                         }
 
                         # ---------------------------------------
+                        # Docker Image Retention
+                        # Keep latest + current rollback only
+                        # ---------------------------------------
+
+                        cleanup_old_images() {
+                            echo "Starting Docker image cleanup..."
+
+                            for service in $SERVICES; do
+                                repository="foodkart-$service"
+                                keep_rollback=""
+
+                                if [ "$HAS_ROLLBACK" = "true" ]; then
+                                    keep_rollback="rollback-$BUILD_NUMBER"
+                                fi
+
+                                docker image ls "$repository" --format '{{.Tag}}' |
+                                while IFS= read -r tag; do
+
+                                    [ -n "$tag" ] || continue
+
+                                    if [ "$tag" = "latest" ] ||
+                                       { [ -n "$keep_rollback" ] && [ "$tag" = "$keep_rollback" ]; }; then
+
+                                        echo "Keeping $repository:$tag"
+
+                                    else
+                                        echo "Removing $repository:$tag"
+
+                                        docker image rm "$repository:$tag" >/dev/null 2>&1 ||
+                                            echo "WARNING: Could not remove $repository:$tag"
+                                    fi
+                                done
+                            done
+
+                            echo "Docker image cleanup completed."
+                        }
+
+                        # ---------------------------------------
                         # Deploy New Docker Images
                         # ---------------------------------------
 
@@ -416,6 +453,10 @@ pipeline {
 
                             verify_all || return 1
 
+                            echo "FOODKART DEPLOYMENT VERIFIED."
+
+                            cleanup_old_images
+
                             return 0
                         }
 
@@ -450,9 +491,14 @@ pipeline {
                                 --wait-timeout 180 \
                                 $SERVICES || return 1
 
+                            echo "Verifying rollback..."
+
                             verify_all || return 1
 
                             echo "Previous version restored successfully."
+
+                            cleanup_old_images
+
                             return 0
                         }
 
@@ -474,6 +520,7 @@ pipeline {
                                     echo "Rollback successful."
                                 else
                                     echo "CRITICAL: Rollback failed."
+                                    echo "Preserving available Docker images for manual recovery."
                                 fi
                             else
                                 echo "First deployment: no previous version exists."
