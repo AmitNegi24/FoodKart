@@ -9,6 +9,5 @@
 *.log
 logs/
 
-target/
 README.md
 .dockerignore
