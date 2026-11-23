@@ -28,6 +28,7 @@ public class SecurityConfig {
                                 "/restaurants/delete/{id}")
                         .authenticated()
                         .requestMatchers("/actuator/health",
+                                "/actuator/health/**",
                                 "/restaurants/getAllRestaurants",
                                 "/restaurants/getActiveRestaurantsByCity",
                                 "/restaurants/getRestaurantsByNameContaining",
