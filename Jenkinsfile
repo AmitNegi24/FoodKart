@@ -379,12 +379,22 @@ pipeline {
 
                             echo "Verifying Eureka Service Registry..."
 
-                            check_health service-registry \
-                                http://foodkart-eureka-server:8761/ || return 1
+                            for i in $(seq 1 12); do
+                                if docker run --rm \
+                                    --network foodkart-network \
+                                    curlimages/curl:8.12.1 \
+                                    -fsS http://service-registry:8761/ >/dev/null; then
 
-                            echo "Eureka Service Registry is healthy."
+                                    echo "Eureka Service Registry is healthy."
+                                    return 0
+                                fi
 
-                            return 0
+                                echo "Waiting for service-registry ($i/12)"
+                                sleep 5
+                            done
+
+                            echo "ERROR: Eureka Service Registry health check failed."
+                            return 1
                         }
 
                         # ---------------------------------------
