@@ -35,7 +35,7 @@ pipeline {
                 withCredentials([
                     file(credentialsId: 'foodkart-restaurant-env', variable: 'RESTAURANT_ENV'),
                     file(credentialsId: 'foodkart-menu-service', variable: 'MENU_ENV'),
-                    file(credentialsId: 'foodkart-auth-service', variable: 'AUTH_ENV'),
+                    file(credentialsId: 'foodkart-auth-env', variable: 'AUTH_ENV'),
                     file(credentialsId: 'foodkart-order-service', variable: 'ORDER_ENV'),
                     file(credentialsId: 'foodkart-payment-service', variable: 'PAYMENT_ENV'),
                     file(credentialsId: 'foodkart-delivery-service', variable: 'DELIVERY_ENV')
@@ -92,7 +92,7 @@ pipeline {
                 withCredentials([
                     file(credentialsId: 'foodkart-restaurant-env', variable: 'RESTAURANT_SERVICE_ENV_FILE'),
                     file(credentialsId: 'foodkart-menu-service', variable: 'MENU_SERVICE_ENV_FILE'),
-                    file(credentialsId: 'foodkart-auth-service', variable: 'AUTH_SERVICE_ENV_FILE'),
+                    file(credentialsId: 'foodkart-auth-env', variable: 'AUTH_SERVICE_ENV_FILE'),
                     file(credentialsId: 'foodkart-order-service', variable: 'ORDER_SERVICE_ENV_FILE'),
                     file(credentialsId: 'foodkart-payment-service', variable: 'PAYMENT_SERVICE_ENV_FILE'),
                     file(credentialsId: 'foodkart-delivery-service', variable: 'DELIVERY_SERVICE_ENV_FILE')
@@ -300,7 +300,7 @@ pipeline {
                 withCredentials([
                     file(credentialsId: 'foodkart-restaurant-env', variable: 'RESTAURANT_SERVICE_ENV_FILE'),
                     file(credentialsId: 'foodkart-menu-service', variable: 'MENU_SERVICE_ENV_FILE'),
-                    file(credentialsId: 'foodkart-auth-service', variable: 'AUTH_SERVICE_ENV_FILE'),
+                    file(credentialsId: 'foodkart-auth-env', variable: 'AUTH_SERVICE_ENV_FILE'),
                     file(credentialsId: 'foodkart-order-service', variable: 'ORDER_SERVICE_ENV_FILE'),
                     file(credentialsId: 'foodkart-payment-service', variable: 'PAYMENT_SERVICE_ENV_FILE'),
                     file(credentialsId: 'foodkart-delivery-service', variable: 'DELIVERY_SERVICE_ENV_FILE')
