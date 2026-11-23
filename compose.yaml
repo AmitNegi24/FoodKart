@@ -6,6 +6,13 @@ x-common: &common
     - foodkart-network
 
 services:
+  service-registry:
+    <<: *common
+    image: foodkart-service-registry:latest
+    container_name: foodkart-eureka-server
+    ports:
+      - "8761:8761"
+
   restaurant-service:
     <<: *common
     image: foodkart-restaurant-service:latest
@@ -14,6 +21,8 @@ services:
       - "8081:8081"
     env_file:
       - ${RESTAURANT_SERVICE_ENV_FILE:-./restaurant-service/.env}
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
 
   menu-service:
     <<: *common

@@ -1,4 +1,3 @@
-
 pipeline {
     agent any
 
@@ -36,10 +35,10 @@ pipeline {
                 withCredentials([
                     file(credentialsId: 'foodkart-restaurant-env', variable: 'RESTAURANT_ENV'),
                     file(credentialsId: 'foodkart-menu-service', variable: 'MENU_ENV'),
-                    file(credentialsId: 'foodkart-auth-env', variable: 'AUTH_ENV'),
-                    file(credentialsId: 'foodkart-order-env', variable: 'ORDER_ENV'),
-                    file(credentialsId: 'foodkart-payment-env', variable: 'PAYMENT_ENV'),
-                    file(credentialsId: 'foodkart-delivery-env', variable: 'DELIVERY_ENV')
+                    file(credentialsId: 'foodkart-auth-service', variable: 'AUTH_ENV'),
+                    file(credentialsId: 'foodkart-order-service', variable: 'ORDER_ENV'),
+                    file(credentialsId: 'foodkart-payment-service', variable: 'PAYMENT_ENV'),
+                    file(credentialsId: 'foodkart-delivery-service', variable: 'DELIVERY_ENV')
                 ]) {
                     sh '''
                         set +x
@@ -69,6 +68,7 @@ pipeline {
             steps {
                 script {
                     def services = [
+                        'service-registry',
                         'restaurant-service',
                         'menu-service',
                         'auth-service',
@@ -92,10 +92,10 @@ pipeline {
                 withCredentials([
                     file(credentialsId: 'foodkart-restaurant-env', variable: 'RESTAURANT_SERVICE_ENV_FILE'),
                     file(credentialsId: 'foodkart-menu-service', variable: 'MENU_SERVICE_ENV_FILE'),
-                    file(credentialsId: 'foodkart-auth-env', variable: 'AUTH_SERVICE_ENV_FILE'),
-                    file(credentialsId: 'foodkart-order-env', variable: 'ORDER_SERVICE_ENV_FILE'),
-                    file(credentialsId: 'foodkart-payment-env', variable: 'PAYMENT_SERVICE_ENV_FILE'),
-                    file(credentialsId: 'foodkart-delivery-env', variable: 'DELIVERY_SERVICE_ENV_FILE')
+                    file(credentialsId: 'foodkart-auth-service', variable: 'AUTH_SERVICE_ENV_FILE'),
+                    file(credentialsId: 'foodkart-order-service', variable: 'ORDER_SERVICE_ENV_FILE'),
+                    file(credentialsId: 'foodkart-payment-service', variable: 'PAYMENT_SERVICE_ENV_FILE'),
+                    file(credentialsId: 'foodkart-delivery-service', variable: 'DELIVERY_SERVICE_ENV_FILE')
                 ]) {
                     sh '''
                         set +x
@@ -150,6 +150,20 @@ pipeline {
 
             steps {
                 script {
+                    /*
+                     * Eureka is intentionally NOT part of the existing
+                     * seven-service rollback mechanism.
+                     *
+                     * The application rollback remains:
+                     * restaurant-service
+                     * menu-service
+                     * auth-service
+                     * order-service
+                     * payment-service
+                     * delivery-service
+                     * api-gateway
+                     */
+
                     def services = [
                         'restaurant-service',
                         'menu-service',
@@ -243,6 +257,7 @@ pipeline {
             steps {
                 script {
                     def services = [
+                        'service-registry',
                         'restaurant-service',
                         'menu-service',
                         'auth-service',
@@ -269,7 +284,7 @@ pipeline {
                         }
                     }
 
-                    echo 'All seven Docker images built successfully.'
+                    echo 'All eight Docker images built successfully.'
                 }
             }
         }
@@ -285,15 +300,20 @@ pipeline {
                 withCredentials([
                     file(credentialsId: 'foodkart-restaurant-env', variable: 'RESTAURANT_SERVICE_ENV_FILE'),
                     file(credentialsId: 'foodkart-menu-service', variable: 'MENU_SERVICE_ENV_FILE'),
-                    file(credentialsId: 'foodkart-auth-env', variable: 'AUTH_SERVICE_ENV_FILE'),
-                    file(credentialsId: 'foodkart-order-env', variable: 'ORDER_SERVICE_ENV_FILE'),
-                    file(credentialsId: 'foodkart-payment-env', variable: 'PAYMENT_SERVICE_ENV_FILE'),
-                    file(credentialsId: 'foodkart-delivery-env', variable: 'DELIVERY_SERVICE_ENV_FILE')
+                    file(credentialsId: 'foodkart-auth-service', variable: 'AUTH_SERVICE_ENV_FILE'),
+                    file(credentialsId: 'foodkart-order-service', variable: 'ORDER_SERVICE_ENV_FILE'),
+                    file(credentialsId: 'foodkart-payment-service', variable: 'PAYMENT_SERVICE_ENV_FILE'),
+                    file(credentialsId: 'foodkart-delivery-service', variable: 'DELIVERY_SERVICE_ENV_FILE')
                 ]) {
                     sh '''
                         set +x
                         set -eu
 
+                        # Seven application services.
+                        #
+                        # Eureka is deployed separately because the existing
+                        # rollback mechanism is intentionally kept for these
+                        # seven application services.
                         SERVICES="restaurant-service menu-service auth-service order-service payment-service delivery-service api-gateway"
 
                         # ---------------------------------------
@@ -325,6 +345,46 @@ pipeline {
 
                             echo "ERROR: $service health check failed."
                             return 1
+                        }
+
+                        # ---------------------------------------
+                        # Eureka Service Registry Deployment
+                        # ---------------------------------------
+
+                        deploy_eureka() {
+                            echo "Starting Eureka Service Registry..."
+
+                            docker image inspect \
+                                "foodkart-service-registry:$BUILD_NUMBER" \
+                                >/dev/null 2>&1 || {
+                                    echo "ERROR: Eureka Docker image not found."
+                                    return 1
+                                }
+
+                            echo "Promoting Eureka image to latest..."
+
+                            docker tag \
+                                "foodkart-service-registry:$BUILD_NUMBER" \
+                                "foodkart-service-registry:latest" || return 1
+
+                            echo "Creating or updating Eureka container..."
+
+                            docker compose -f compose.yaml up \
+                                -d \
+                                --no-deps \
+                                --no-build \
+                                --pull never \
+                                --force-recreate \
+                                service-registry || return 1
+
+                            echo "Verifying Eureka Service Registry..."
+
+                            check_health service-registry \
+                                http://foodkart-eureka-server:8761/ || return 1
+
+                            echo "Eureka Service Registry is healthy."
+
+                            return 0
                         }
 
                         # ---------------------------------------
@@ -380,11 +440,20 @@ pipeline {
 
                         # ---------------------------------------
                         # Docker Image Retention
-                        # Keep latest + current rollback only
+                        #
+                        # Application services:
+                        #   latest + current rollback
+                        #
+                        # Eureka:
+                        #   latest only
                         # ---------------------------------------
 
                         cleanup_old_images() {
                             echo "Starting Docker image cleanup..."
+
+                            # -----------------------------------
+                            # Application service cleanup
+                            # -----------------------------------
 
                             for service in $SERVICES; do
                                 repository="foodkart-$service"
@@ -413,6 +482,27 @@ pipeline {
                                 done
                             done
 
+                            # -----------------------------------
+                            # Eureka cleanup
+                            # -----------------------------------
+
+                            repository="foodkart-service-registry"
+
+                            docker image ls "$repository" --format '{{.Tag}}' |
+                            while IFS= read -r tag; do
+
+                                [ -n "$tag" ] || continue
+
+                                if [ "$tag" = "latest" ]; then
+                                    echo "Keeping $repository:$tag"
+                                else
+                                    echo "Removing $repository:$tag"
+
+                                    docker image rm "$repository:$tag" >/dev/null 2>&1 ||
+                                        echo "WARNING: Could not remove $repository:$tag"
+                                fi
+                            done
+
                             echo "Docker image cleanup completed."
                         }
 
@@ -421,15 +511,18 @@ pipeline {
                         # ---------------------------------------
 
                         deploy_new() {
-                            echo "Checking new Docker images..."
+                            echo "Checking new application Docker images..."
 
                             for service in $SERVICES; do
                                 docker image inspect \
                                     "foodkart-$service:$BUILD_NUMBER" \
-                                    >/dev/null 2>&1 || return 1
+                                    >/dev/null 2>&1 || {
+                                        echo "ERROR: Missing image foodkart-$service:$BUILD_NUMBER"
+                                        return 1
+                                    }
                             done
 
-                            echo "Promoting new images to latest..."
+                            echo "Promoting new application images to latest..."
 
                             for service in $SERVICES; do
                                 docker tag \
@@ -470,7 +563,10 @@ pipeline {
                             for service in $SERVICES; do
                                 docker image inspect \
                                     "foodkart-$service:rollback-$BUILD_NUMBER" \
-                                    >/dev/null 2>&1 || return 1
+                                    >/dev/null 2>&1 || {
+                                        echo "ERROR: Missing rollback image for $service"
+                                        return 1
+                                    }
                             done
 
                             for service in $SERVICES; do
@@ -508,7 +604,7 @@ pipeline {
 
                         echo "Starting FoodKart deployment..."
 
-                        if deploy_new; then
+                        if deploy_eureka && deploy_new; then
                             echo "FOODKART DEPLOYMENT SUCCESSFUL."
                         else
                             echo "FOODKART DEPLOYMENT FAILED."
