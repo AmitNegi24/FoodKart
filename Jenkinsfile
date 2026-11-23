@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -314,6 +315,7 @@ pipeline {
                         # Eureka is deployed separately because the existing
                         # rollback mechanism is intentionally kept for these
                         # seven application services.
+
                         SERVICES="restaurant-service menu-service auth-service order-service payment-service delivery-service api-gateway"
 
                         # ---------------------------------------
@@ -326,10 +328,11 @@ pipeline {
                             attempt=1
 
                             while [ "$attempt" -le 12 ]; do
-                                if curl \
-                                    --fail \
-                                    --silent \
-                                    --show-error \
+
+                                if docker run --rm \
+                                    --network foodkart-network \
+                                    curlimages/curl:8.12.1 \
+                                    -fsS \
                                     --max-time 5 \
                                     --output /dev/null \
                                     "$url"; then
@@ -380,10 +383,13 @@ pipeline {
                             echo "Verifying Eureka Service Registry..."
 
                             for i in $(seq 1 12); do
+
                                 if docker run --rm \
                                     --network foodkart-network \
                                     curlimages/curl:8.12.1 \
-                                    -fsS http://service-registry:8761/ >/dev/null; then
+                                    -fsS \
+                                    --max-time 5 \
+                                    http://service-registry:8761/ >/dev/null; then
 
                                     echo "Eureka Service Registry is healthy."
                                     return 0
@@ -405,12 +411,20 @@ pipeline {
                             attempt=1
 
                             while [ "$attempt" -le 12 ]; do
-                                if bash -c \
-                                    'echo > /dev/tcp/foodkart-menu-service/8082' \
-                                    2>/dev/null; then
 
-                                    echo "Menu Service port 8082 is accepting connections."
-                                    return 0
+                                if response=$(docker run --rm \
+                                    --network foodkart-network \
+                                    curlimages/curl:8.12.1 \
+                                    -sS \
+                                    --max-time 5 \
+                                    -o /dev/null \
+                                    -w '%{http_code}' \
+                                    http://menu-service:8082/ 2>/dev/null); then
+
+                                    if [ "$response" != "000" ]; then
+                                        echo "Menu Service port 8082 is accepting connections."
+                                        return 0
+                                    fi
                                 fi
 
                                 echo "Waiting for Menu Service ($attempt/12)"
@@ -427,25 +441,28 @@ pipeline {
                         # ---------------------------------------
 
                         verify_all() {
+
                             check_health restaurant-service \
-                                http://foodkart-restaurant-service:8081/actuator/health || return 1
+                                http://restaurant-service:8081/actuator/health || return 1
 
                             check_menu_tcp || return 1
 
                             check_health auth-service \
-                                http://foodkart-auth-service:8083/actuator/health || return 1
+                                http://auth-service:8083/actuator/health || return 1
 
                             check_health order-service \
-                                http://foodkart-order-service:8084/actuator/health || return 1
+                                http://order-service:8084/actuator/health || return 1
 
                             check_health payment-service \
-                                http://foodkart-payment-env:8085/actuator/health || return 1
+                                http://payment-service:8085/actuator/health || return 1
 
                             check_health delivery-service \
-                                http://foodkart-delivery-env:8086/actuator/health || return 1
+                                http://delivery-service:8086/actuator/health || return 1
 
                             check_health api-gateway \
-                                http://foodkart-api-gateway:8080/actuator/health || return 1
+                                http://api-gateway:8080/actuator/health || return 1
+
+                            echo "All seven microservices are healthy."
                         }
 
                         # ---------------------------------------
