@@ -142,115 +142,131 @@ pipeline {
             }
         }
 
-        stage('Backup Existing Containers') {
-            when {
-                expression {
-                    return env.ENABLE_CD == 'true'
-                }
+
+stage('Backup Existing Containers') {
+    when {
+        expression {
+            return env.ENABLE_CD == 'true'
+        }
+    }
+
+    steps {
+        script {
+            def services = [
+                'restaurant-service',
+                'menu-service',
+                'auth-service',
+                'order-service',
+                'payment-service',
+                'delivery-service',
+                'api-gateway'
+            ]
+
+            def count = sh(
+                script: '''
+                    count=0
+
+                    for service in \
+                        restaurant-service \
+                        menu-service \
+                        auth-service \
+                        order-service \
+                        payment-service \
+                        delivery-service \
+                        api-gateway
+                    do
+                        if docker container inspect \
+                            "foodkart-$service" >/dev/null 2>&1; then
+                            count=$((count + 1))
+                        fi
+                    done
+
+                    echo "$count"
+                ''',
+                returnStdout: true
+            ).trim()
+
+            if (count == '0') {
+                env.HAS_ROLLBACK = 'false'
+                echo 'First deployment detected.'
             }
 
-            steps {
-                script {
-                    /*
-                     * Eureka is intentionally NOT part of the
-                     * seven-service rollback mechanism.
-                     *
-                     * Rollback services:
-                     * restaurant-service
-                     * menu-service
-                     * auth-service
-                     * order-service
-                     * payment-service
-                     * delivery-service
-                     * api-gateway
-                     */
+            else if (count == '7') {
+                echo 'Existing containers detected.'
+                echo 'Checking whether their original images are available...'
 
-                    def services = [
-                        'restaurant-service',
-                        'menu-service',
-                        'auth-service',
-                        'order-service',
-                        'payment-service',
-                        'delivery-service',
-                        'api-gateway'
-                    ]
+                def imagesAvailable = true
 
-                    def count = sh(
-                        script: '''
-                            set -eu
-                            count=0
-
-                            for service in \
-                                restaurant-service \
-                                menu-service \
-                                auth-service \
-                                order-service \
-                                payment-service \
-                                delivery-service \
-                                api-gateway
-                            do
-                                if docker container inspect \
-                                    "foodkart-$service" >/dev/null 2>&1; then
-                                    count=$((count + 1))
-                                fi
-                            done
-
-                            echo "$count"
-                        ''',
+                for (service in services) {
+                    def imageId = sh(
+                        script: """
+                            docker inspect \
+                                --format '{{.Image}}' \
+                                foodkart-${service}
+                        """,
                         returnStdout: true
                     ).trim()
 
-                    if (count == '0') {
-                        env.HAS_ROLLBACK = 'false'
+                    def available = sh(
+                        script: """
+                            docker image inspect '${imageId}' \
+                                >/dev/null 2>&1
+                        """,
+                        returnStatus: true
+                    ) == 0
 
-                        echo 'FIRST DEPLOYMENT DETECTED.'
-                        echo 'No existing microservice containers.'
-                        echo 'Skipping backup stage.'
-                    }
-
-                    else if (count == '7') {
-                        echo 'Existing deployment detected.'
-                        echo 'Creating rollback snapshots from existing containers...'
-
-                        for (service in services) {
-                            withEnv([
-                                "SERVICE_NAME=${service}",
-                                "IMAGE_TAG=${env.BUILD_NUMBER}"
-                            ]) {
-                                sh '''
-                                    set -eu
-
-                                    container="foodkart-$SERVICE_NAME"
-                                    rollback_image="foodkart-$SERVICE_NAME:rollback-$IMAGE_TAG"
-
-                                    echo "Backing up container: $container"
-
-                                    docker commit "$container" "$rollback_image"
-
-                                    docker image inspect "$rollback_image" >/dev/null 2>&1 || {
-                                        echo "ERROR: Rollback image verification failed for $SERVICE_NAME"
-                                        exit 1
-                                    }
-
-                                    echo "Verified rollback image: $rollback_image"
-                                '''
-                            }
-                        }
-
-                        env.HAS_ROLLBACK = 'true'
-
-                        echo 'All seven rollback images created and verified.'
-                    }
-
-                    else {
-                        error(
-                            "Partial deployment detected: ${count}/7 containers exist. " +
-                            "Deployment stopped to prevent inconsistent updates."
-                        )
+                    if (!available) {
+                        echo "Missing image content for ${service}: ${imageId}"
+                        imagesAvailable = false
                     }
                 }
+
+                if (imagesAvailable) {
+                    echo 'All original images are available.'
+
+                    for (service in services) {
+                        withEnv(["SERVICE_NAME=${service}", "IMAGE_TAG=${env.BUILD_NUMBER}"]) {
+                            sh '''
+                                set -eu
+
+                                container="foodkart-$SERVICE_NAME"
+
+                                image_id=$(docker inspect \
+                                    --format '{{.Image}}' "$container")
+
+                                docker tag "$image_id" \
+                                    "foodkart-$SERVICE_NAME:rollback-$IMAGE_TAG"
+
+                                docker image inspect \
+                                    "foodkart-$SERVICE_NAME:rollback-$IMAGE_TAG" \
+                                    >/dev/null
+
+                                echo "Rollback image verified for $SERVICE_NAME"
+                            '''
+                        }
+                    }
+
+                    env.HAS_ROLLBACK = 'true'
+                    echo 'All seven rollback images preserved.'
+                } else {
+                    env.HAS_ROLLBACK = 'false'
+
+                    echo 'WARNING: Existing image content is missing.'
+                    echo 'Skipping rollback backup for this deployment.'
+                    echo 'Fresh image build will proceed without automatic rollback.'
+                }
+            }
+
+            else {
+                error(
+                    "Partial deployment detected: ${count}/7 containers exist. " +
+                    "Deployment stopped."
+                )
             }
         }
+    }
+}
+
 
         stage('Build Docker Images') {
             steps {
