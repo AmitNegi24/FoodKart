@@ -37,8 +37,8 @@ pipeline {
                     file(credentialsId: 'foodkart-menu-service', variable: 'MENU_ENV'),
                     file(credentialsId: 'foodkart-auth-env', variable: 'AUTH_ENV'),
                     file(credentialsId: 'foodkart-order-env', variable: 'ORDER_ENV'),
-                    file(credentialsId: 'foodkart-payment-service', variable: 'PAYMENT_ENV'),
-                    file(credentialsId: 'foodkart-delivery-service', variable: 'DELIVERY_ENV')
+                    file(credentialsId: 'foodkart-payment-env', variable: 'PAYMENT_ENV'),
+                    file(credentialsId: 'foodkart-delivery-env', variable: 'DELIVERY_ENV')
                 ]) {
                     sh '''
                         set +x
@@ -94,8 +94,8 @@ pipeline {
                     file(credentialsId: 'foodkart-menu-service', variable: 'MENU_SERVICE_ENV_FILE'),
                     file(credentialsId: 'foodkart-auth-env', variable: 'AUTH_SERVICE_ENV_FILE'),
                     file(credentialsId: 'foodkart-order-env', variable: 'ORDER_SERVICE_ENV_FILE'),
-                    file(credentialsId: 'foodkart-payment-service', variable: 'PAYMENT_SERVICE_ENV_FILE'),
-                    file(credentialsId: 'foodkart-delivery-service', variable: 'DELIVERY_SERVICE_ENV_FILE')
+                    file(credentialsId: 'foodkart-payment-env', variable: 'PAYMENT_SERVICE_ENV_FILE'),
+                    file(credentialsId: 'foodkart-delivery-env', variable: 'DELIVERY_SERVICE_ENV_FILE')
                 ]) {
                     sh '''
                         set +x
@@ -302,8 +302,8 @@ pipeline {
                     file(credentialsId: 'foodkart-menu-service', variable: 'MENU_SERVICE_ENV_FILE'),
                     file(credentialsId: 'foodkart-auth-env', variable: 'AUTH_SERVICE_ENV_FILE'),
                     file(credentialsId: 'foodkart-order-env', variable: 'ORDER_SERVICE_ENV_FILE'),
-                    file(credentialsId: 'foodkart-payment-service', variable: 'PAYMENT_SERVICE_ENV_FILE'),
-                    file(credentialsId: 'foodkart-delivery-service', variable: 'DELIVERY_SERVICE_ENV_FILE')
+                    file(credentialsId: 'foodkart-payment-env', variable: 'PAYMENT_SERVICE_ENV_FILE'),
+                    file(credentialsId: 'foodkart-delivery-env', variable: 'DELIVERY_SERVICE_ENV_FILE')
                 ]) {
                     sh '''
                         set +x
@@ -429,10 +429,10 @@ pipeline {
                                 http://foodkart-order-service:8084/actuator/health || return 1
 
                             check_health payment-service \
-                                http://foodkart-payment-service:8085/actuator/health || return 1
+                                http://foodkart-payment-env:8085/actuator/health || return 1
 
                             check_health delivery-service \
-                                http://foodkart-delivery-service:8086/actuator/health || return 1
+                                http://foodkart-delivery-env:8086/actuator/health || return 1
 
                             check_health api-gateway \
                                 http://foodkart-api-gateway:8080/actuator/health || return 1
