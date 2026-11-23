@@ -152,10 +152,10 @@ pipeline {
             steps {
                 script {
                     /*
-                     * Eureka is intentionally NOT part of the existing
+                     * Eureka is intentionally NOT part of the
                      * seven-service rollback mechanism.
                      *
-                     * The application rollback remains:
+                     * Rollback services:
                      * restaurant-service
                      * menu-service
                      * auth-service
@@ -210,7 +210,7 @@ pipeline {
 
                     else if (count == '7') {
                         echo 'Existing deployment detected.'
-                        echo 'Backing up existing Docker images (running or stopped)...'
+                        echo 'Creating rollback snapshots from existing containers...'
 
                         for (service in services) {
                             withEnv([
@@ -221,27 +221,25 @@ pipeline {
                                     set -eu
 
                                     container="foodkart-$SERVICE_NAME"
+                                    rollback_image="foodkart-$SERVICE_NAME:rollback-$IMAGE_TAG"
 
-                                    image_id=$(docker inspect \
-                                        --format '{{.Image}}' \
-                                        "$container")
+                                    echo "Backing up container: $container"
 
-                                    if [ -z "$image_id" ]; then
-                                        echo "ERROR: Could not find image for $container"
+                                    docker commit "$container" "$rollback_image"
+
+                                    docker image inspect "$rollback_image" >/dev/null 2>&1 || {
+                                        echo "ERROR: Rollback image verification failed for $SERVICE_NAME"
                                         exit 1
-                                    fi
+                                    }
 
-                                    docker tag "$image_id" \
-                                        "foodkart-$SERVICE_NAME:rollback-$IMAGE_TAG"
-
-                                    echo "Backup created for $SERVICE_NAME"
+                                    echo "Verified rollback image: $rollback_image"
                                 '''
                             }
                         }
 
                         env.HAS_ROLLBACK = 'true'
 
-                        echo 'All seven rollback images preserved.'
+                        echo 'All seven rollback images created and verified.'
                     }
 
                     else {
@@ -309,12 +307,6 @@ pipeline {
                     sh '''
                         set +x
                         set -eu
-
-                        # Seven application services.
-                        #
-                        # Eureka is deployed separately because the existing
-                        # rollback mechanism is intentionally kept for these
-                        # seven application services.
 
                         SERVICES="restaurant-service menu-service auth-service order-service payment-service delivery-service api-gateway"
 
@@ -469,18 +461,14 @@ pipeline {
                         # Docker Image Retention
                         #
                         # Application services:
-                        #   latest + current rollback
+                        # latest + current rollback
                         #
                         # Eureka:
-                        #   latest only
+                        # latest only
                         # ---------------------------------------
 
                         cleanup_old_images() {
                             echo "Starting Docker image cleanup..."
-
-                            # -----------------------------------
-                            # Application service cleanup
-                            # -----------------------------------
 
                             for service in $SERVICES; do
                                 repository="foodkart-$service"
@@ -509,10 +497,6 @@ pipeline {
                                 done
                             done
 
-                            # -----------------------------------
-                            # Eureka cleanup
-                            # -----------------------------------
-
                             repository="foodkart-service-registry"
 
                             docker image ls "$repository" --format '{{.Tag}}' |
@@ -523,8 +507,7 @@ pipeline {
                                 if [ "$tag" = "latest" ]; then
                                     echo "Keeping $repository:$tag"
                                 else
-                                    echo "Removing $repository:$tag"
-
+                                    echo "Removing $repository:$tag" >/dev/null
                                     docker image rm "$repository:$tag" >/dev/null 2>&1 ||
                                         echo "WARNING: Could not remove $repository:$tag"
                                 fi
