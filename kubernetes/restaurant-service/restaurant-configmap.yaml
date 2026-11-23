@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: restaurant-config
+  namespace: foodkart
+data:
+  DB_HOST: "ep-frosty-smoke-b4p9t17w-pooler.c-6.us-east-2.aws.neon.tech"
+  DB_PORT: "5432"
+  DB_NAME: "neondb"
